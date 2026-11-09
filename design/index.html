@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="robots" content="noindex,nofollow">
+  <title>Design-Einstellungen · &amp;TALENTS</title>
+  <link rel="stylesheet" id="color-defaults" href="../theme-colors.css?v=0.10.1">
+  <link rel="stylesheet" id="font-defaults" href="../theme-fonts.css?v=0.10.1">
+  <link rel="stylesheet" href="./design.css?v=0.10.1">
+  <script type="module" src="./design.js?v=0.10.1"></script>
+</head>
+<body>
+  <header class="topbar"><a href="../">&amp;TALENTS</a><span>Testumgebung</span></header>
+  <main class="workspace">
+    <div class="page-heading">
+      <h1>Design-Einstellungen</h1>
+      <p>Ändere die Werte und sieh direkt, wie sie in der App aussehen.</p>
+    </div>
+    <nav aria-label="Einstellübersichten" class="views">
+      <a href="?view=farben" data-view="farben">Farben</a>
+      <a href="?view=schriftgroessen" data-view="schriftgroessen">Schriftgrößen</a>
+    </nav>
+    <div class="layout">
+      <section class="panel controls" aria-labelledby="controls-title">
+        <h2 id="controls-title">Farben</h2>
+        <p id="controls-description"></p>
+        <p class="scope">Übernehmen speichert Deine Auswahl für die Test-App in diesem Browser. Für eine gemeinsame Version kannst Du die Werte als Datei herunterladen.</p>
+        <div class="actions">
+          <button type="button" id="apply">Für diesen Browser übernehmen</button>
+          <button type="button" id="export" class="secondary">Einstellungen herunterladen</button>
+          <button type="button" id="reset" class="secondary">Standardwerte laden</button>
+        </div>
+        <p id="status" role="status"></p>
+        <form id="theme-form">
+          <label class="search" for="search">Einstellung suchen</label>
+          <input id="search" type="search" placeholder="Zum Beispiel Orange, Hinweise oder Match">
+          <div id="settings"></div>
+        </form>
+      </section>
+      <section class="panel preview" aria-labelledby="preview-title">
+        <h2 id="preview-title">App-Vorschau</h2>
+        <p>Beispieldaten für typische Elemente der App</p>
+        <iframe id="preview" title="Vorschau der Design-Einstellungen" src="./preview.html?v=0.10.1"></iframe>
+      </section>
+    </div>
+  </main>
+</body>
+</html>

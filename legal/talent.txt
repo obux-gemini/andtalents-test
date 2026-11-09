@@ -1,0 +1,3 @@
+Rechtliche Texte in der Testumgebung
+
+Diese Testumgebung dient ausschließlich der Erprobung der App. Nutzungsbedingungen, Datenschutzhinweise und Impressum werden erst in der Live-Umgebung zur Verfügung stehen.

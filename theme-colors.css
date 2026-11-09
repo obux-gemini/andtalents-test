@@ -1,0 +1,22 @@
+/* Gemeinsame Farbpalette für App und Design-Einstellungen. */
+:root {
+  --theme-color-text: #111827;
+  --theme-color-muted-text: #6b7280;
+  --theme-color-surface: #ffffff;
+  --theme-color-canvas: #f5f6f7;
+  --theme-color-neutral-soft: #e9edf1;
+  --theme-color-border: #e5e7eb;
+  --theme-color-brand-orange: #f97316;
+  --theme-color-orange-ink: #9a3412;
+  --theme-color-orange-soft: #fff7ed;
+  --theme-color-brand-teal: #0da596;
+  --theme-color-teal-ink: #065c54;
+  --theme-color-teal-soft: #eaf8f5;
+  --theme-color-match-pass: #c6e6d2;
+  --theme-color-match-close: #e8f5ed;
+  --theme-color-green-ink: #1d5b45;
+  --theme-color-match-open: #f3e4e5;
+  --theme-color-field-error: #b42318;
+  --theme-color-bookmark: #6d489e;
+  --theme-color-bookmark-soft: #f3eeff;
+}

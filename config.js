@@ -1,0 +1,2 @@
+// Public browser credentials only. All data access is enforced by Supabase.
+export const config={"url":"https://sxsctkdzarnnwovnsvcm.supabase.co","key":"sb_publishable_RZWKI7bQWK6G3jhT3npNyw_2A2rinvb","gatewayJwt":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN4c2N0a2R6YXJubndvdm5zdmNtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTIxMTEzNzMsImV4cCI6MjEwNzY4NzM3M30.bEd9ckJvVzxDA_zVcaNRGDF20IT3hMyHSw5LO97W0nc"};

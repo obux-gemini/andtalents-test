@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>App-Vorschau · &amp;TALENTS</title>
+  <link rel="stylesheet" href="../theme-colors.css?v=0.10.1">
+  <link rel="stylesheet" href="../theme-fonts.css?v=0.10.1">
+  <link rel="stylesheet" href="../style.css?v=0.10.1">
+  <link rel="stylesheet" href="../mobile.css?v=0.10.1">
+  <link rel="stylesheet" href="../rebuild.css?v=0.10.3">
+</head>
+<body>
+  <div class="testbar">Testumgebung · Nur fiktive Daten · Keine echten Zahlungen</div>
+  <header class="header guest-header"><span></span><div class="brand"><img class="logo" src="../logo.jpg" alt="&amp;TALENTS"></div><span></span></header>
+  <main class="page preview-sample">
+    <h1>Hallo Alex!</h1>
+    <p class="intro">Hier findest Du Deine Jobs, Bewerbungen und Matches.</p>
+    <div class="stats" aria-label="Beispiel-Dashboard">
+      <div class="stat stat-cards"><strong>4</strong><span>Neue Jobs</span></div>
+      <div class="stat stat-send"><strong>2</strong><span>Offene Bewerbungen</span></div>
+      <div class="stat stat-match"><strong>1</strong><span>Matches</span></div>
+      <div class="stat stat-bookmark"><strong>3</strong><span>Gespeicherte Jobs</span></div>
+    </div>
+    <div class="cards">
+      <article class="job-card">
+        <div class="match-heading">
+          <div><h3>Softwareentwickler</h3><div class="company">Musterfirma · IT</div></div>
+          <span class="match-score-wrap"><strong class="match-score">86 %</strong><span class="match-score-label">Match-Score</span></span>
+        </div>
+        <div class="match-overview">
+          <div class="match-coverage" style="--skill-columns:4"><span class="match-unit pass"></span><span class="match-unit pass"></span><span class="match-unit close"></span><span class="match-unit open"></span></div>
+          <div class="match-counts"><span><b>2</b> passend</span><span><b>1</b> ähnlich</span><span><b>1</b> offen</span></div>
+        </div>
+        <ul class="match-list">
+          <li class="match-row pass"><div class="match-skill-name"><span>Softwareentwicklung</span><svg class="match-star filled" aria-hidden="true" viewBox="0 0 24 24"><path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.9-6.2-3.2-6.2 3.2L7 14.2 2 9.3l6.9-1Z"../></svg></div></li>
+          <li class="match-row close"><div class="match-skill-name">Datenbanken</div><div class="match-via">SQL</div></li>
+          <li class="match-row open"><div class="match-skill-name">Softwaretest</div></li>
+          <li class="match-row extra"><div class="match-skill-name">Git</div></li>
+        </ul>
+        <div class="card-footer"><button class="btn orange" type="button">Jetzt entdecken</button><button class="btn secondary" type="button">Merken</button></div>
+      </article>
+      <div class="box">
+        <h2>Dein Job-Filter</h2>
+        <label class="field"><span>E-Mail</span><input type="email" value="alex@example.invalid"></label>
+        <div class="choices"><label class="choice"><input type="radio" checked><span>Ganz Deutschland</span></label></div>
+        <p class="hint login-test-note"><strong>Hinweis für die Testumgebung</strong><br>Verwende ausschließlich fiktive Angaben.</p>
+        <button class="btn orange full" type="button">Änderungen speichern</button>
+      </div>
+    </div>
+  </main>
+</body>
+</html>
