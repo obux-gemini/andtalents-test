@@ -16,7 +16,8 @@ const skillGroups=details=>[
 ];
 export function scorePill(score){
   const n=Math.max(0,Math.min(100,Number(score)||0));
-  return `<span class="match-score-wrap"><strong class="match-score" aria-label="Match-Score ${n} Prozent">${n} %</strong><span class="match-score-label">Match-Score</span></span>`;
+  const badge=`<strong class="match-score" aria-label="Match-Score ${n} Prozent">${n} %</strong>`;
+  return `<span class="match-score-wrap">${badge}<span class="match-score-label">Match-Score</span></span>`;
 }
 export function matchOverview(match){
   const groups=skillGroups(match?.details||[]);

@@ -10,8 +10,22 @@ async function result(response){const raw=await response.text();let data;try{dat
 async function refresh(){if(!session)return;if(session.expires_at>Date.now()/1000+60)return;if(!refreshPromise)refreshPromise=(async()=>{try{save(await result(await fetchBounded(config.url+'/auth/v1/token?grant_type=refresh_token',{method:'POST',headers:{apikey:config.key,'Content-Type':'application/json'},body:JSON.stringify({refresh_token:session.refresh_token})})));}catch(error){if(error.status===400||error.status===401){save(null);throw Error('Die Sitzung ist abgelaufen. Bitte erneut anmelden.');}throw Error('Die Verbindung konnte nicht hergestellt werden. Bitte erneut versuchen.');}finally{refreshPromise=null;}})();return refreshPromise;}
 export async function request(path,{method='POST',body,headers={},raw=false}={}){await refresh();if(!session)throw Error('Bitte zuerst anmelden.');const response=await fetchBounded(config.url+path,{method,headers:{apikey:config.key,Authorization:'Bearer '+session.access_token,...(!raw?{'Content-Type':'application/json'}:{}),...headers},body:body===undefined?undefined:raw?body:JSON.stringify(body)});return result(response);}
 export async function api(action,payload={}){if(action==='recruiter_costs')return request('/rest/v1/rpc/app_recruiter_costs',{body:{}});if(action==='mark_swipe_notice')return request('/rest/v1/rpc/app_swipe_notice',{body:{phase:payload.phase}});return request('/rest/v1/rpc/app_api',{body:{action,payload}});}
-export function companyWorkplaces(companyId,place){
- return request('/rest/v1/rpc/app_company_workplaces',{body:{company_id:companyId,place}});
+export async function candidateFeedRequest(jobId = null) {
+ const body=jobId?{p_job_id:jobId}:{};
+ try {
+  return await request('/rest/v1/rpc/app_candidate_feed',{body});
+ } catch (error) {
+  if (error.code!=='PGRST202') throw error;
+  const feed=await api('feed');
+  const items=jobId?feed.items.filter(job=>job.id===jobId):feed.items;
+  return {items,count:items.length};
+ }
+}
+export function profileWorkplaces(profileId,place){
+ return request('/rest/v1/rpc/app_profile_workplaces',{body:{p_profile_id:profileId,p_place:place}});
+}
+export function saveCompanySetup(account,profile,place){
+ return request('/rest/v1/rpc/app_save_company_setup',{body:{p_account:account,p_profile:profile,p_place:place}});
 }
 async function passwordSession(email,password){return result(await fetchBounded(config.url+'/auth/v1/token?grant_type=password',{method:'POST',headers:{apikey:config.key,'Content-Type':'application/json'},body:JSON.stringify({email,password})}));}
 export async function login(email,password){const value=await passwordSession(email,password);save(value);return value;}
