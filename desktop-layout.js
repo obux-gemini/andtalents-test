@@ -1,7 +1,13 @@
-import {escapeHtml as E} from './match-view.js?v=0.15.33-pages';
+import {escapeHtml as E} from './match-view.js?v=0.9.3';
 
 export const desktopViewport = matchMedia('(min-width: 960px)');
 const selected = new Map();
+
+export function companyLabel(name, industry) {
+  const branch = industry?.trim();
+  const company = name ? `<span class="company-name">${E(name)}</span>` : '';
+  return branch ? `${company}${company ? ' ' : ''}<span class="company-industry">${E(company ? '(' + branch + ')' : branch)}</span>` : company;
+}
 
 export function currentDesktopItem(key, ids, preferred = '') {
   const previous = selected.get(key);
@@ -16,11 +22,11 @@ export function desktopTable(key, rows, headings, active, title = '') {
     ${title ? `<h2>${E(title)}</h2>` : ''}
     <table class="desktop-table" data-desktop-table="${E(key)}" data-desktop-choice-list="${E(key)}">
       <thead><tr>${headings.map(label => `<th scope="col">${E(label)}</th>`).join('')}</tr></thead>
-      <tbody>${rows.map(({id, label, subtitle, cells, href}) => `<tr data-desktop-choice${id === active ? ' data-desktop-current' : ''}>
+      <tbody>${rows.map(({id, label, subtitle, subtitleIsCompany, industry, cells, href}) => `<tr data-desktop-choice${id === active ? ' data-desktop-current' : ''}>
         <td>${href
           ? `<a class="desktop-row-control" href="${E(href)}">${E(label)}</a>`
           : `<button class="desktop-row-control" type="button" data-desktop-select="${E(id)}" aria-pressed="${id === active}">${E(label)}</button>`}
-          ${subtitle ? `<small>${E(subtitle)}</small>` : ''}
+          ${subtitle || (subtitleIsCompany && industry) ? `<small>${subtitleIsCompany ? companyLabel(subtitle, industry) : E(subtitle)}</small>` : ''}
         </td>${cells.map(cell => `<td>${cell}</td>`).join('')}
       </tr>`).join('')}</tbody>
     </table>
