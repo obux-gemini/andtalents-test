@@ -153,7 +153,7 @@ function header(role,current){
  </a>`:'';
  return `<header class="header ${session?'':'guest-header'}">
   ${dashboard}
-  <a class="brand" href="#/"><img class="logo" src="./logo.webp" alt="&TALENTS Logo"><span class="app-version">Version 0.15.90</span></a>
+  <a class="brand" href="#/"><img class="logo" src="./logo.webp" alt="&TALENTS Logo"><span class="app-version">Version 0.15.91</span></a>
   <a class="btn secondary header-feedback" href="#/recruiter/feedback" ${current==='feedback'||routeKey==='/recruiter/feedback'?'aria-current="page"':''}>${icon('edit')} Feedback geben</a>
   <div class="header-actions">${profile}</div>
  </header>`;
@@ -756,28 +756,34 @@ async function dashboard(role){if(role==='talent'&&!state.me.candidate){go('/tal
   </div>${role==='recruiter'?'<p class="settings-note">In der Testumgebung simulieren wir 15 € je Match.</p>':''}`);
 }
 const feedbackQuestions=[
- ['friction','Wo sind Sie beim Testen hängen geblieben?'],
- ['decision','Was hat Ihnen bei der Entscheidung zwischen den Bewerbungen geholfen oder gefehlt?'],
- ['use_case','Für welche Art von Stelle würden Sie &TALENTS ausprobieren?']
+ ['test_problems','test_problems_details','Hatten Sie Probleme beim Testen?'],
+ ['missing_criteria','missing_criteria_details','Fehlt Ihnen ein Filterkriterium oder eine Bewertung, die Ihnen helfen würde, Bewerbungen zu beurteilen?'],
+ ['skills_search_convincing','skills_search_details','Überzeugt Sie die Suche nach Kandidaten anhand ihrer tatsächlichen Skills?']
 ];
+const feedbackChoice=(name,value,label)=>`<label><input type="radio" name="${name}" value="${value}" aria-label="${label}" required><span aria-hidden="true">${label}</span></label>`;
+const feedbackFreeText=(name,label)=>`<label class="field"><span>${E(label)} (optional)</span><textarea name="${name}" rows="3" maxlength="1500"></textarea></label>`;
 function recruiterFeedbackPage(){
- const questions=feedbackQuestions.map(([name,label])=>`<label class="field"><span>${E(label)} (optional)</span><textarea name="${name}" rows="3" maxlength="1500"></textarea></label>`).join('');
- const ratings=Array.from({length:10},(_,index)=>{
-  const value=index+1;
-  return `<label><input type="radio" name="rating" value="${value}" aria-label="${value}" required><span aria-hidden="true">${value}</span></label>`;
- }).join('');
+ const questions=feedbackQuestions.map(([name,details,label])=>`<fieldset class="feedback-rating feedback-question">
+    <legend>${E(label)} *</legend>
+    <div class="feedback-rating-options feedback-yes-no">${feedbackChoice(name,'yes','Ja')}${feedbackChoice(name,'no','Nein')}</div>
+    <small class="field-error" data-feedback-choice-error role="alert"></small>
+    ${feedbackFreeText(details,'Ihre Erklärung')}
+   </fieldset>`).join('');
+ const ratings=Array.from({length:10},(_,index)=>feedbackChoice('rating',index+1,index+1)).join('');
  return shell('recruiter','feedback',`<h1 class="page-title">${icon('edit')} Feedback</h1>
   <p class="intro">Wie war Ihr Test mit &amp;TALENTS?</p>
   <form class="box recruiter-feedback" data-form="recruiter-feedback">
    <label class="field"><span>Name (optional)</span><input name="contact_name" autocomplete="name" maxlength="120"></label>
    <label class="field"><span id="feedback-email-label">E-Mail-Adresse *</span><input name="contact_email" type="email" autocomplete="email" maxlength="254" aria-labelledby="feedback-email-label" required></label>
    ${questions}
+   ${feedbackFreeText('other_feedback','Was möchten Sie uns sonst noch sagen?')}
+   <p class="hint">Bitte geben Sie keine personenbezogenen Daten Dritter ein.</p>
    <fieldset class="feedback-rating">
     <legend>Können Sie sich vorstellen, dass Ihnen &amp;TALENTS bei der Gewinnung von passenden Bewerberprofilen helfen kann? *</legend>
     <p class="hint">1 = überhaupt nicht, 10 = auf jeden Fall</p>
     <div class="feedback-rating-options">${ratings}</div>
+    <small class="field-error" data-feedback-choice-error role="alert"></small>
    </fieldset>
-   <p class="hint">Bitte geben Sie keine personenbezogenen Daten Dritter ein.</p>
    <div class="form-error" role="alert"></div>
    <div class="form-actions"><button type="submit" class="btn orange">Feedback senden</button></div>
   </form>`);
@@ -1909,9 +1915,14 @@ case 'cost-period':{
 case 'recruiter-feedback':{
  const rating=Number(f.rating);
  if(!Number.isInteger(rating)||rating<1||rating>10)throw Error('Bitte wählen Sie eine Einschätzung von 1 bis 10.');
+ if(feedbackQuestions.some(([name])=>!['yes','no'].includes(f[name])))throw Error('Bitte beantworten Sie die drei Fragen mit Ja oder Nein.');
  const submission_id=form.dataset.feedbackSubmission??=crypto.randomUUID();
  const payload={submission_id,rating,contact_name:f.contact_name.trim(),contact_email:f.contact_email.trim(),
-  friction:f.friction.trim(),decision:f.decision.trim(),use_case:f.use_case.trim()};
+  other_feedback:f.other_feedback.trim()};
+ for(const [name,details] of feedbackQuestions){
+  payload[name]=f[name]==='yes';
+  payload[details]=f[details].trim();
+ }
  await request('/rest/v1/rpc/app_recruiter_feedback',{body:{p_feedback:payload}});
  if(form.isConnected){
   form.removeAttribute('data-form');
@@ -2363,9 +2374,9 @@ start();
 
 // Pair native validation messages with their inputs for assistive technology.
 document.addEventListener('invalid',event=>{const input=event.target;if(!input.form)return;
- if(input.name==='rating'&&input.form.dataset.form==='recruiter-feedback'){
-  const error=input.form.querySelector('.form-error');
-  if(!error.hasChildNodes())error.innerHTML=errorBlock('Bitte wählen Sie eine Einschätzung von 1 bis 10.');
+ if(input.type==='radio'&&input.form.dataset.form==='recruiter-feedback'){
+  const error=input.closest('fieldset').querySelector('[data-feedback-choice-error]');
+  if(!error.textContent)error.textContent=input.name==='rating'?'Bitte wählen Sie eine Einschätzung von 1 bis 10.':'Bitte wählen Sie Ja oder Nein.';
   return;
  }
  const panel=input.closest('[data-desktop-panel]');
@@ -2375,3 +2386,9 @@ document.addEventListener('invalid',event=>{const input=event.target;if(!input.f
  }
  input.setAttribute('aria-invalid','true');const id='field-error-'+(input.name||'input');let out=input.parentElement.querySelector('.field-error');if(!out){out=document.createElement('small');out.className='field-error';out.id=id;input.after(out);}out.textContent=input.validationMessage;input.setAttribute('aria-describedby',id);},true);
 document.addEventListener('input',event=>{const input=event.target;if(input.getAttribute('aria-invalid')==='true'&&input.validity.valid){input.removeAttribute('aria-invalid');input.removeAttribute('aria-describedby');input.parentElement.querySelector('.field-error')?.remove();}});
+document.addEventListener('change',event=>{
+ const input=event.target;
+ if(input.type==='radio'&&input.checked&&input.form?.dataset.form==='recruiter-feedback'){
+  input.closest('fieldset').querySelector('[data-feedback-choice-error]').textContent='';
+ }
+});

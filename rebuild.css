@@ -95,6 +95,9 @@ html{scroll-padding-top:calc(var(--ui-header-height) + 60px)}main,dialog{overflo
 .feedback-rating-options input:focus-visible+span{outline:2px solid currentColor;outline-offset:2px}
 .feedback-rating-options input:checked:focus-visible+span{outline-color:var(--teal)}
 @media(min-width:1024px){.feedback-rating-options{grid-template-columns:repeat(10,minmax(0,1fr))}}
+.feedback-rating-options.feedback-yes-no{grid-template-columns:repeat(2,minmax(0,1fr));max-width:200px;margin-top:8px}
+.feedback-question .field{margin:12px 0 0}
+.recruiter-feedback [data-feedback-choice-error]:empty{display:none}
 .currency-symbol{color:inherit;font-weight:600;line-height:1}
 .page-title>.currency-symbol{color:var(--theme-color-brand-orange)}
 .counter[hidden],.availability-rail:has(> .counter[hidden]),.job-count:has(> .counter[hidden]){display:none}
