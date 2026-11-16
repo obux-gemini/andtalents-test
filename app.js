@@ -1,6 +1,6 @@
 import {MIN_SKILLS,MATCH_MIN,TRAVEL_LABELS,selectedTravel,hasMinimumSkills,meetsMatchPolicy,mayShowNavigation,noticePhase} from './product-policy.js?v=0.9.2';
-import {scorePill,matchOverview,skillList,skillsHeading,topSkillIcon} from './match-view.js?v=0.15.78';
-import {api,request,candidateFeedRequest,login,signup,logout,changePassword,getSession,syncSession,SessionExpired,pendingRecovery,requestPasswordReset,exchangeRecovery,finishPasswordReset,upload,documentUrl,deleteDocument,profileWorkplaces,saveCompanySetup,readProfilePicture,saveProfilePicture,removeProfilePicture,readMatchedProfilePicture} from './backend.js?v=0.15.51';
+import {scorePill,matchOverview,skillList,skillsHeading,topSkillIcon} from './match-view.js?v=0.15.88';
+import {api,request,candidateFeedRequest,login,signup,logout,changePassword,getSession,syncSession,SessionExpired,pendingRecovery,requestPasswordReset,exchangeRecovery,finishPasswordReset,upload,documentUrl,deleteDocument,profileWorkplaces,saveCompanySetup,readProfilePicture,saveProfilePicture,removeProfilePicture,readMatchedProfilePicture} from './backend.js?v=0.15.88';
 import {sessionResources} from './session-resources.js?v=0.14';
 import {activateDesktopTab,companyLabel,currentDesktopItem,desktopDetails,desktopTable,desktopViewport,expandDesktopDetails,selectDesktopItem} from './desktop-layout.js?v=0.15.58';
 import {jobSkillSections} from './job-import-sections.js?v=0.15.22';
@@ -154,7 +154,7 @@ function header(role,current){
  </a>`:'';
  return `<header class="header ${session?'':'guest-header'}${hasFeedback?' header-with-feedback':''}">
   ${dashboard}
-  <a class="brand" href="#/"><img class="logo" src="./logo.webp" alt="&TALENTS Logo"><span class="app-version">Version 0.15.87</span></a>
+  <a class="brand" href="#/"><img class="logo" src="./logo.webp" alt="&TALENTS Logo"><span class="app-version">Version 0.15.88</span></a>
   ${hasFeedback?`<a class="btn secondary header-feedback" href="#/recruiter/feedback" ${current==='feedback'?'aria-current="page"':''}>${icon('edit')} Feedback geben</a>`:''}
   <div class="header-actions">${profile}</div>
  </header>`;
@@ -771,10 +771,10 @@ function recruiterFeedbackPage(){
   <p class="intro">Wie war Ihr Test mit &amp;TALENTS?</p>
   <form class="box recruiter-feedback" data-form="recruiter-feedback">
    <label class="field"><span>Name (optional)</span><input name="contact_name" autocomplete="name" maxlength="120"></label>
-   <label class="field"><span id="feedback-email-label">E-Mail-Adresse (optional)</span><input name="contact_email" type="email" autocomplete="email" maxlength="254" aria-labelledby="feedback-email-label"></label>
+   <label class="field"><span id="feedback-email-label">E-Mail-Adresse *</span><input name="contact_email" type="email" autocomplete="email" maxlength="254" aria-labelledby="feedback-email-label" required></label>
    ${questions}
    <fieldset class="feedback-rating">
-    <legend>Können Sie sich vorstellen, dass Ihnen &amp;TALENTS bei der Gewinnung von passenden Bewerberprofilen helfen kann?</legend>
+    <legend>Können Sie sich vorstellen, dass Ihnen &amp;TALENTS bei der Gewinnung von passenden Bewerberprofilen helfen kann? *</legend>
     <p class="hint">1 = überhaupt nicht, 10 = auf jeden Fall</p>
     <div class="feedback-rating-options">${ratings}</div>
    </fieldset>
@@ -817,7 +817,21 @@ async function costsPage(version){
  if(version!==pageVersion)return '';
  state.costs=costs;
  const profiles=state.me.company_profiles;
- return shell('recruiter','costs',`<h1 class="page-title">${euroSymbol} Kosten</h1><p class="intro">Hier siehst Du die Kosten Deiner Matches im Zeitverlauf.</p><div class="toolbar"><label class="field"><span>Unternehmensprofil</span><select tabindex="-1" id="cost-profile-filter"><option value="">Alle Unternehmensprofile</option>${profiles.map(profile=>`<option value="${E(profile.id)}">${E(profile.public_name)}</option>`).join('')}</select></label><label class="field"><span>Job</span><select tabindex="-1" id="cost-job-filter">${costJobOptions(costs.jobs)}</select></label></div><div class="desktop-costs"><section class="box cost-summary" id="cost-summary" aria-live="polite">${costHistory(costs,costs.jobs)}</section><section class="box" id="cost-jobs">${costJobSummary(costs,costs.jobs)}</section></div><p class="settings-note">Die Kosten werden in der Testumgebung simuliert. Es erfolgen keine echten Zahlungen.</p>`);
+ const period=`<form data-form="cost-period">
+  <fieldset class="cost-period">
+   <legend>Zeitraum</legend>
+   <div class="cost-period-controls">
+    ${field('from','Von',{type:'date',required:false})}
+    ${field('to','Bis',{type:'date',required:false})}
+    <div class="cost-period-actions">
+     <button type="submit" class="btn secondary">Zeitraum anwenden</button>
+     <button type="submit" value="reset" class="btn secondary" formnovalidate>Zurücksetzen</button>
+    </div>
+   </div>
+   <div class="form-error"></div>
+  </fieldset>
+ </form>`;
+ return shell('recruiter','costs',`<h1 class="page-title">${euroSymbol} Kosten</h1><p class="intro">Hier siehst Du die Kosten Deiner Matches im Zeitverlauf.</p><div class="toolbar"><label class="field"><span>Unternehmensprofil</span><select tabindex="-1" id="cost-profile-filter"><option value="">Alle Unternehmensprofile</option>${profiles.map(profile=>`<option value="${E(profile.id)}">${E(profile.public_name)}</option>`).join('')}</select></label><label class="field"><span>Job</span><select tabindex="-1" id="cost-job-filter">${costJobOptions(costs.jobs)}</select></label></div>${period}<div class="desktop-costs"><section class="box cost-summary" id="cost-summary" aria-live="polite">${costHistory(costs,costs.jobs)}</section><section class="box" id="cost-jobs">${costJobSummary(costs,costs.jobs)}</section></div><p class="settings-note">Die Kosten werden in der Testumgebung simuliert. Es erfolgen keine echten Zahlungen.</p>`);
 }
 function costJobSummary(costs,jobs){
  const totals=new Map();
@@ -1852,7 +1866,7 @@ async function saveCompanyForm(form,fields){
  go(mode==='onboarding'?'/recruiter/onboarding-job':companyRoute(accountId,profileId));
 }
 
-document.addEventListener('submit',async event=>{const form=event.target;if(!form.dataset.form)return;event.preventDefault();const button=form.querySelector('button:not([type="button"])');await withButton(button,async()=>{try{const f=Object.fromEntries(new FormData(form));switch(form.dataset.form){
+document.addEventListener('submit',async event=>{const form=event.target;if(!form.dataset.form)return;event.preventDefault();const button=event.submitter||form.querySelector('button:not([type="button"])');await withButton(button,async()=>{try{const f=Object.fromEntries(new FormData(form));switch(form.dataset.form){
 case 'request-password-reset':{
  const address=f.email.trim();
  if(address.toLowerCase().endsWith('@example.invalid'))throw Error('Testadressen mit @example.invalid haben kein Postfach. Verwende für diesen Test eine erreichbare E-Mail-Adresse.');
@@ -1874,6 +1888,19 @@ case 'login':await login(f.email,f.password);resources.invalidate();{const me=aw
 case 'account':{if(form.dataset.role==='recruiter'&&!validateCompanyFields(form))break;if(f.password!==f.repeat)throw Error('Die Passwörter stimmen nicht überein.');if(!validPassword(f.password))throw Error('Bitte alle fünf Passwortregeln erfüllen.');const role=form.dataset.role;sessionStorage.setItem('onboarding-role',role);if(!getSession())await signup(f.email,f.password);await api('save_account',{role,first_name:f.first_name,last_name:f.last_name,phone:f.phone||''});resources.invalidate();state.me=await readMe();go('/'+role+'/onboarding/'+(role==='talent'?'filter':'company'));break;}
 case 'candidate':{requireMinimumSkills();const preferences=readPrefs(form);if(!preferences.travel.length)throw Error('Bitte mindestens eine Reiseoption auswählen.');await api('save_candidate',{preferences,skills:state.skills});resources.invalidate();form.dataset.committed="true";delete state.draft.talentPrefs;delete state.draft.talentSkills;persistDraft();toast('Job-Filter gespeichert.');go('/talent/jobs');break;}
 case 'company':if(validateCompanyFields(form))await saveCompanyForm(form,f);break;
+case 'cost-period':{
+ const reset=event.submitter?.value==='reset';
+ const from=reset?null:f.from||null, to=reset?null:f.to||null;
+ if(from&&to&&form.elements.from.valueAsNumber>form.elements.to.valueAsNumber)throw Error('Das Bis-Datum muss am oder nach dem Von-Datum liegen.');
+ const costs=await api('recruiter_costs',{p_from:from,p_to:to});
+ if(form.isConnected){
+  state.costs=costs;
+  filterCosts();
+  if(reset)form.reset();
+  form.querySelector('.form-error').replaceChildren();
+ }
+ break;
+}
 case 'recruiter-feedback':{
  const rating=Number(f.rating);
  if(!Number.isInteger(rating)||rating<1||rating>10)throw Error('Bitte wählen Sie eine Einschätzung von 1 bis 10.');
@@ -2331,6 +2358,11 @@ start();
 
 // Pair native validation messages with their inputs for assistive technology.
 document.addEventListener('invalid',event=>{const input=event.target;if(!input.form)return;
+ if(input.name==='rating'&&input.form.dataset.form==='recruiter-feedback'){
+  const error=input.form.querySelector('.form-error');
+  if(!error.hasChildNodes())error.innerHTML=errorBlock('Bitte wählen Sie eine Einschätzung von 1 bis 10.');
+  return;
+ }
  const panel=input.closest('[data-desktop-panel]');
  const tabs=panel?.closest('[data-desktop-tabs]');
  if(desktopViewport.matches&&tabs&&Array.from(input.form.elements).find(control=>control.willValidate&&!control.validity.valid)===input){

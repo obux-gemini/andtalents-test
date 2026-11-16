@@ -67,7 +67,7 @@ export async function request(path,{method='POST',body,headers={},raw=false,blob
   throw error;
  }
 }
-export async function api(action,payload={}){if(action==='recruiter_costs')return request('/rest/v1/rpc/app_recruiter_costs',{body:{}});if(action==='mark_swipe_notice')return request('/rest/v1/rpc/app_swipe_notice',{body:{phase:payload.phase}});return request('/rest/v1/rpc/app_api',{body:{action,payload}});}
+export async function api(action,payload={}){if(action==='recruiter_costs')return request('/rest/v1/rpc/app_recruiter_costs',{body:payload});if(action==='mark_swipe_notice')return request('/rest/v1/rpc/app_swipe_notice',{body:{phase:payload.phase}});return request('/rest/v1/rpc/app_api',{body:{action,payload}});}
 export async function candidateFeedRequest(jobId = null) {
  const body=jobId?{p_job_id:jobId}:{};
  try {

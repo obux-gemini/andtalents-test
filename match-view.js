@@ -41,6 +41,7 @@ export function skillList(job,{candidateSkills=[]}={}){
   };
   const rows=items=>items.map(x=>`<li class="match-row ${x.factor===1?'pass':x.factor>0?'close':'open'}"><div class="match-skill-name"><span>${E(x.label)}</span>${topSkillMark(x.fire,x.candidate_fire)}</div>${comparison(x)}<span class="sr-only">${x.factor===1?'Passend':x.factor>0?'Ähnlich':'Offen'}</span></li>`).join('');
   const extraRows=extras.map(x=>`<li class="match-row extra"><div class="match-skill-name"><span>${E(x.label)}</span>${topSkillMark(false,x.fire)}</div><span class="sr-only">Zusätzlich im Profil</span></li>`).join('');
-  return `<div class="match-comparison">${skillsHeading}<ul class="match-list">${rows(skillGroups(d).flat())}${extraRows}</ul>${!d.length?'<p class="hint">Der individuelle Skillvergleich erscheint nach Auswahl eines Kandidaten.</p>':''}</div>`;
+  const additional=extraRows?`<h4 class="match-section-title match-extra-title">Zusätzliche Skills</h4><ul class="match-list">${extraRows}</ul>`:'';
+  return `<div class="match-comparison">${skillsHeading}<ul class="match-list">${rows(skillGroups(d).flat())}</ul>${additional}${!d.length?'<p class="hint">Der individuelle Skillvergleich erscheint nach Auswahl eines Kandidaten.</p>':''}</div>`;
 }
 export function plainSkillList(skills=[],own=false){return `<ul class="match-list">${skills.map(s=>`<li class="match-row extra"><div class="match-skill-name"><span>${E(s.label)}</span>${topSkillMark(own?false:s.fire,own?s.fire:false)}</div></li>`).join('')}</ul>`;}
