@@ -44,7 +44,7 @@ html{scroll-padding-top:124px}main,dialog{overflow-wrap:anywhere}input,select,te
 @media(max-height:600px){.swipe-page{height:auto;min-height:calc(100dvh - 144px);overflow:visible;padding-bottom:calc(var(--ui-nav-height) + 12px)!important}.swipe-container,.swipe-card{height:auto}.swipe-card .card-scroll{overflow:visible;flex:none}.swipe-card .swipe-actions{position:relative}.swipe-container>.empty{min-height:220px}}
 
 .top-skill-toggle .match-star,.hint .match-star{vertical-align:middle}
-.search-results .result.selected,.search-results .result.selected:disabled{background:var(--match-pass);color:var(--theme-color-text)}
+.search-results .result.selected{background:var(--match-pass);color:var(--theme-color-text);cursor:pointer}
 .choice input[name="leadership"]:focus-visible+span{outline-color:var(--theme-color-text)}
 .login-test-note{margin:-8px 0 14px;padding:8px 10px;border-radius:var(--ui-control-radius);background:var(--theme-color-orange-soft)}
 .candidate-location{grid-template-columns:minmax(0,7fr) minmax(0,13fr)}
@@ -71,8 +71,11 @@ html{scroll-padding-top:124px}main,dialog{overflow-wrap:anywhere}input,select,te
 .swipe-score-info .match-score-label{display:inline-flex;align-items:center;gap:5px;white-space:nowrap}
 .swipe-info-icon{display:inline-grid;place-items:center;width:19px;height:19px;border:1px solid currentColor;border-radius:50%;font-size:var(--theme-font-size-12);font-weight:700;line-height:1}
 .mobile-detail-toggle{margin:8px 0}
+.skill-overlap-notice{display:grid;gap:12px;margin:8px 0 12px}
+.skill-overlap-notice p{margin:0}
 .currency-symbol{color:inherit;font-weight:600;line-height:1}
 .page-title>.currency-symbol{color:var(--theme-color-brand-orange)}
+.counter[hidden],.availability-rail:has(> .counter[hidden]),.job-count:has(> .counter[hidden]){display:none}
 .welcome > .welcome-headline{
  font-size:clamp(2rem,6vw,3.15rem);
  line-height:.91;

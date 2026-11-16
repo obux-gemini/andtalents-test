@@ -1,5 +1,5 @@
 import {MIN_SKILLS,MATCH_MIN,TRAVEL_LABELS,selectedTravel,hasMinimumSkills,meetsMatchPolicy,mayShowNavigation,noticePhase} from './product-policy.js?v=0.9.2';
-import {scorePill,matchOverview,skillList,skillsHeading,topSkillIcon} from './match-view.js?v=0.15.65';
+import {scorePill,matchOverview,skillList,skillsHeading,topSkillIcon} from './match-view.js?v=0.15.78';
 import {api,request,candidateFeedRequest,login,signup,logout,changePassword,getSession,syncSession,SessionExpired,pendingRecovery,requestPasswordReset,exchangeRecovery,finishPasswordReset,upload,documentUrl,deleteDocument,profileWorkplaces,saveCompanySetup,readProfilePicture,saveProfilePicture,removeProfilePicture,readMatchedProfilePicture} from './backend.js?v=0.15.51';
 import {sessionResources} from './session-resources.js?v=0.14';
 import {activateDesktopTab,companyLabel,currentDesktopItem,desktopDetails,desktopTable,desktopViewport,expandDesktopDetails,selectDesktopItem} from './desktop-layout.js?v=0.15.58';
@@ -34,6 +34,7 @@ const feedFreshFor=15000;
 const feedUsableFor=60000;
 const readMe=()=>resources.load('me',()=>api('me'),60000);
 const readFeed=()=>resources.load('feed',()=>candidateFeedRequest(),feedFreshFor);
+const readRecruiterJobs=(jobId)=>api('jobs',{include_candidate_counts:false,...(jobId?{job_id:jobId}:{})});
 
 function invalidateCandidateFeed(jobId,keepOtherJobs=false){
  const cached=keepOtherJobs?resources.peek('feed',feedFreshFor):null;
@@ -152,7 +153,7 @@ function header(role,current){
  </a>`:'';
  return `<header class="header ${session?'':'guest-header'}">
   ${dashboard}
-  <a class="brand" href="#/"><img class="logo" src="./logo.webp" alt="&TALENTS Logo"><span class="app-version">Version 0.15.73</span></a>
+  <a class="brand" href="#/"><img class="logo" src="./logo.webp" alt="&TALENTS Logo"><span class="app-version">Version 0.15.84</span></a>
   <div class="header-actions">${profile}</div>
  </header>`;
 }
@@ -182,14 +183,90 @@ function narrow(content,role=routeKey.split('/')[1]||state.me?.profile?.role){ro
 function steps(current,total,text){return `<div class="steps">${Array.from({length:total},(_,i)=>`${i?'<span class="step-line"></span>':''}<span class="step ${i+1===current?'active':i+1<current?'done':''}">${i+1<current?'✓':i+1}</span>`).join('')}</div><div class="step-caption">Schritt ${current} von ${total}: ${text}</div>`;}
 function empty(title,text,link=''){return `<div class="empty"><div class="empty-icon">◇</div><h2>${E(title)}</h2><p>${E(text)}</p>${link}</div>`;}
 function scoreBadge(score,kind='chart'){const n=Math.max(0,Math.min(100,Number(score)||0));return `<span class="score" aria-label="Skill-Match ${n} Prozent"><span class="score-fill" style="width:${n} %"></span><span class="score-value">${icon(kind,true)} ${n} %</span></span>`;}
-function skillsWidget(job=false){return `<div class="group"><label>Skills * <span id="skill-count">(${state.skills.length}/10)</span></label><p class="hint">${job?'Wähle bis zu 10 Skills, die für diesen Job wichtig sind. Je genauer die Auswahl, desto passender die Kandidaten. Für die Veröffentlichung brauchst Du mindestens 5 Skills.':'Wähle mindestens 5 und höchstens 10 Skills. Du kannst nach einem Beruf oder direkt nach einzelnen Skills suchen.'}</p><label class="field skill-search"><span>${job?'Suche nach dem Beruf für diese Stelle':'Suche nach Deinem Beruf'}</span><input name="occupation-search" data-search="occupation" placeholder="z. B. Programmierer, Buchhalter, Designer" autocomplete="off"></label><div class="search-results" id="occupation-results"></div><label class="field skill-search"><span>Oder suche direkt nach Skills</span><input name="skill-search" data-search="skill" placeholder="z. B. Python, SAP, Schweißen" autocomplete="off"></label><div class="search-results" id="skill-results"></div><div id="selected-skills" class="skill-area"></div><p class="hint">Markiere bis zu 3 Skills mit ${topSkillIcon()} als Top Skills – ${job?'die Anforderungen, die Dir am wichtigsten sind':'Deine größten Stärken'}. Sie zählen beim Matching stärker.</p></div>`;}
-function skillResult(s){const selected=state.skills.some(x=>Number(x.id)===Number(s.id));return `<button type="button" class="result${selected?' selected':''}" data-action="add-skill" data-id="${s.id}" data-label="${E(s.label)}" aria-pressed="${selected}" ${selected?'disabled':''}>${selected?'✓':'＋'} ${E(s.label)}${selected?' · Ausgewählt':''}</button>`;}
-function markSkillResults(){document.querySelectorAll('.search-results [data-action="add-skill"]').forEach(button=>{const selected=state.skills.some(s=>String(s.id)===button.dataset.id);button.classList.toggle('selected',selected);button.setAttribute('aria-pressed',String(selected));button.disabled=selected;button.textContent=(selected?'✓ ':'＋ ')+button.dataset.label+(selected?' · Ausgewählt':'');});}
+function skillsWidget(job=false){return `<div class="group"><label>Skills * <span id="skill-count">(${state.skills.length}/10)</span></label><p class="hint">${job?'Wähle bis zu 10 Skills, die für diesen Job wichtig sind. Je genauer die Auswahl, desto passender die Kandidaten. Für die Veröffentlichung brauchst Du mindestens 5 Skills.':'Wähle mindestens 5 und höchstens 10 Skills. Du kannst nach einem Beruf oder direkt nach einzelnen Skills suchen.'}</p><label class="field skill-search"><span>${job?'Suche nach dem Beruf für diese Stelle':'Suche nach Deinem Beruf'}</span><input name="occupation-search" data-search="occupation" placeholder="z. B. Programmierer, Buchhalter, Designer" autocomplete="off"></label><div class="search-results" id="occupation-results"></div><label class="field skill-search"><span>Oder suche direkt nach Skills</span><input name="skill-search" data-search="skill" placeholder="z. B. Python, SAP, Schweißen" autocomplete="off"></label><div class="search-results" id="skill-results"></div><div role="status" data-skill-overlap></div><div id="selected-skills" class="skill-area"></div><p class="hint">Markiere bis zu 3 Skills mit ${topSkillIcon()} als Top Skills – ${job?'die Anforderungen, die Dir am wichtigsten sind':'Deine größten Stärken'}. Sie zählen beim Matching stärker.</p></div>`;}
+const skillResultLabel=(label,selected)=>`${selected?'✓':'＋'} ${label}`;
+function skillResult(s){
+ const selected=state.skills.some(skill=>Number(skill.id)===Number(s.id));
+ return `<button type="button" class="result${selected?' selected':''}" data-action="toggle-skill" data-id="${s.id}" data-label="${E(s.label)}" aria-pressed="${selected}">${E(skillResultLabel(s.label,selected))}</button>`;
+}
+function markSkillResults(){
+ document.querySelectorAll('.search-results [data-action="toggle-skill"]').forEach(button=>{
+  const selected=state.skills.some(skill=>String(skill.id)===button.dataset.id);
+  button.classList.toggle('selected',selected);
+  button.setAttribute('aria-pressed',String(selected));
+  button.textContent=skillResultLabel(button.dataset.label,selected);
+ });
+}
 function selectedSkillList(skills,editable=false){
  const rows=skills.map(s=>editable?`<li class="selected-skill-row"><button type="button" class="top-skill-toggle" data-action="fire" data-id="${s.id}" aria-label="Top Skill ${E(s.label)}" aria-pressed="${!!s.fire}">${topSkillIcon(s.fire)}</button><span>${E(s.label)}</span><button type="button" class="remove-skill" data-action="remove-skill" data-id="${s.id}" aria-label="${E(s.label)} entfernen">×</button></li>`:`<li class="selected-skill-row"><span class="selected-skill-marker">${s.fire?topSkillIcon(true,'Top Skill'):''}</span><span>${E(s.label)}</span></li>`).join('');
  return rows?`<ul class="selected-skill-list${editable?'':' static-skill-list'}">${rows}</ul>`:'<p class="hint">Noch keine Skills ausgewählt.</p>';
 }
 function paintSkills(){const el=document.querySelector('#selected-skills');if(!el)return;el.innerHTML=`<h3 class="skill-title">Ausgewählte Skills (${state.skills.length}/10)</h3>${selectedSkillList(state.skills,true)}`;document.querySelector('#skill-count').textContent=`(${state.skills.length}/10)`;markSkillResults();updateDesktopJobPreview();}
+function paintSkillOverlapNotice(notice){
+ const target=notice.closest('form')?.dataset.form==='candidate'?'Jobs':'Kandidaten';
+ const explanation=`Verschiedene Skills helfen uns besser passende ${target} zu finden, Du kannst aber trotzdem beide Skills auswählen.`;
+ notice.innerHTML=[...notice.skillPairs.values()].map(({message})=>`<div class="notice orange skill-overlap-notice"><p>${E(message)}</p><p>${explanation}</p></div>`).join('');
+}
+async function checkSkillOverlaps(form,added,results){
+ const notice=form?.querySelector('[data-skill-overlap]');
+ if(!notice||state.skills.length<2||!added.length)return;
+ const snapshot=new Map(state.skills.map(skill=>[Number(skill.id),skill]));
+ try{
+  const pairs=await request('/rest/v1/rpc/app_skill_selection_overlaps',{body:{p_skill_ids:[...snapshot.keys()]}});
+  if(!notice.isConnected)return;
+  const current=new Map(state.skills.map(skill=>[Number(skill.id),skill]));
+  const notices=notice.skillPairs??=new Map();
+  const previousCount=notices.size;
+  for(const {source_id,target_id,relationship} of pairs){
+   const source=snapshot.get(source_id),target=snapshot.get(target_id);
+   if(!source||!target||current.get(source_id)!==source||current.get(target_id)!==target)continue;
+   if(!added.includes(source_id)&&!added.includes(target_id))continue;
+   const key=[source_id,target_id].sort((a,b)=>a-b).join(':');
+   if(notices.has(key))continue;
+   const message=relationship==='hierarchy'
+    ? `${source.label} wird durch ${target.label} bereits abgedeckt.`
+    : `${source.label} und ${target.label} sind austauschbar.`;
+   notices.set(key,{source_id,target_id,message});
+  }
+  if(notices.size===previousCount)return;
+  if(results?.isConnected)results.after(notice);
+  paintSkillOverlapNotice(notice);
+ }catch{
+  // The optional hint does not interrupt selecting or saving skills.
+ }
+}
+function updateSkillSelection(button,action,id){
+ const form=button.closest('form');
+ const skill=state.skills.find(item=>String(item.id)===id);
+ if(action==='fire'){
+  if(!skill)return;
+  if(!skill.fire&&state.skills.filter(item=>item.fire).length>=3){toast('Maximum von 3 Top Skills erreicht.',true);return;}
+  skill.fire=!skill.fire;
+ }else if(action==='remove-skill'||(action==='toggle-skill'&&skill)){
+  state.skills=state.skills.filter(skill=>String(skill.id)!==id);
+  const notice=form?.querySelector('[data-skill-overlap]');
+  if(notice?.skillPairs?.size){
+   const previousCount=notice.skillPairs.size;
+   for(const [key,{source_id,target_id}] of notice.skillPairs){
+    if(source_id===Number(id)||target_id===Number(id))notice.skillPairs.delete(key);
+   }
+   if(notice.skillPairs.size!==previousCount)paintSkillOverlapNotice(notice);
+  }
+ }else{
+  const incoming=action==='add-package'?state.package||[]:[state.catalog.get(Number(id))];
+  const added=[];
+  for(const skill of incoming){
+   if(!skill||state.skills.some(item=>Number(item.id)===Number(skill.id)))continue;
+   if(state.skills.length>=10){toast('Maximum von 10 Skills erreicht.',true);break;}
+   state.skills.push({id:skill.id,label:skill.label,fire:false});
+   added.push(Number(skill.id));
+  }
+  void checkSkillOverlaps(form,added,button.closest('.search-results'));
+ }
+ paintSkills();
+ saveDraft();
+ scheduleCount();
+}
 function desktopTabs(kind,tabs){
  return `<div class="desktop-${kind}-tabs desktop-only" role="group">${tabs.map(([id,label],index)=>
   `<button class="btn secondary small" type="button" data-desktop-tab="${id}" aria-pressed="${index===0}">${label}</button>`).join('')}</div>`;
@@ -233,7 +310,7 @@ function registrationSessionPage(role){
   <a class="btn secondary" href="#/${state.me?.profile?.role||role}/dashboard">Zum Dashboard</a></div>`,role);
 }
 function accountPage(role){
- return narrow(`${steps(1,role==='talent'?2:3,role==='talent'?'Profil anlegen':'Registrierung')}<h1>${role==='talent'?'Profil anlegen':'Konto für Recruiter'}</h1><p class="intro">${role==='talent'?'Zunächst benötigen wir ein paar Angaben zu Dir. Danach richtest Du Deinen Job-Filter ein und kannst direkt mit dem Swipen beginnen.':'Lege zunächst Dein persönliches Konto für Recruiter an. Diese Angaben dienen der Benutzerverwaltung und der Kommunikation innerhalb Deines Unternehmenskontos.'}</p><form data-form="account" data-role="${role}" class="box" autocomplete="off" ${role==='recruiter'?'novalidate':''}>${field('first_name','Vorname',{placeholder:role==='talent'?'Dein Vorname':'Max'})}${field('last_name','Nachname',{placeholder:role==='talent'?'Dein Nachname':'Mustermann'})}${role==='recruiter'?field('phone','Telefon',{type:'tel',placeholder:'+49 123 456789'})+'<h3>Anmeldedaten</h3>':''}${field('email','E-Mail',{type:'email',placeholder:role==='talent'?'deine@email.de':'max@muster-gmbh.de'})}${testEnvironmentNote}${field('password','Passwort',{type:'password',placeholder:'Dein Passwort'})}<ul class="password-rules" id="password-rules">${['Mindestens 8 Zeichen','Mindestens 1 Großbuchstabe','Mindestens 1 Kleinbuchstabe','Mindestens 1 Zahl','Mindestens 1 Sonderzeichen'].map(x=>`<li>${x}</li>`).join('')}</ul><div class="spacer"></div>${field('repeat','Passwort wiederholen',{type:'password',placeholder:'Passwort wiederholen'})}<p class="hint">Mit dem Speichern stimmst Du unseren <a class="text-link" href="./legal/">Nutzungsbedingungen</a> zu. <a href="./legal/">Datenschutz</a> · <a href="./legal/">Impressum</a></p><div class="form-error"></div><div class="spacer"></div><button class="btn orange full">Weiter →</button></form><a class="back-link" href="#/${role}/login">Bereits registriert? Anmelden</a>`);
+ return narrow(`${steps(1,role==='talent'?2:3,role==='talent'?'Profil anlegen':'Registrierung')}<h1>${role==='talent'?'Profil anlegen':'Konto für Recruiter'}</h1><p class="intro">${role==='talent'?'Zunächst benötigen wir ein paar Angaben zu Dir. Danach richtest Du Deinen Job-Filter ein und kannst direkt mit dem Swipen beginnen.':'Lege zunächst Dein persönliches Konto für Recruiter an. Diese Angaben dienen der Benutzerverwaltung und der Kommunikation innerhalb Deines Unternehmenskontos.'}</p><form data-form="account" data-role="${role}" class="box" autocomplete="off" ${role==='recruiter'?'novalidate':''}>${field('first_name','Vorname',{placeholder:role==='talent'?'Dein Vorname':'Max'})}${field('last_name','Nachname',{placeholder:role==='talent'?'Dein Nachname':'Mustermann'})}${role==='recruiter'?field('phone','Telefon',{type:'tel',placeholder:'+49 123 456789'})+'<h3>Anmeldedaten</h3>':''}${field('email','E-Mail',{type:'email',placeholder:role==='talent'?'deine@email.de':'max@muster-gmbh.de'})}${testEnvironmentNote}${field('password','Passwort',{type:'password',placeholder:'Dein Passwort'})}<ul class="password-rules" id="password-rules">${['Mindestens 8 Zeichen','Mindestens 1 Großbuchstabe','Mindestens 1 Kleinbuchstabe','Mindestens 1 Zahl','Mindestens 1 Sonderzeichen'].map(x=>`<li>${x}</li>`).join('')}</ul><div class="spacer"></div>${field('repeat','Passwort wiederholen',{type:'password',placeholder:'Passwort wiederholen'})}<p class="hint"><a class="text-link" href="./legal/">Rechtliche Hinweise zur Testumgebung</a></p><div class="form-error"></div><div class="spacer"></div><button class="btn orange full">Weiter →</button></form><a class="back-link" href="#/${role}/login">Bereits registriert? Anmelden</a>`);
 }
 function candidateForm(onboarding=false){const c=state.me?.candidate;const p=state.draft.talentPrefs||c?.preferences||{};state.skills=structuredClone(state.draft.talentSkills||c?.skills||[]);const form=`${onboarding?steps(2,2,'Job-Filter einrichten'):''}<h1>${icon('edit')} Dein Job-Filter</h1><p class="intro">Alle Angaben in Deinem Job-Filter beeinflussen Deine persönlichen Treffer.</p><form data-form="candidate" data-count-form id="matching-form" class="box">${prefsForm(p)}<div class="form-error"></div><button class="btn orange full">${onboarding?'Job-Filter speichern & Swipen starten':'Job-Filter speichern'} →</button></form>`;return shell('talent','filter',form,'talent');}
 const companyRoute=(accountId,profileId='')=>`/recruiter/company/${accountId}${profileId?'/'+profileId:''}`;
@@ -410,7 +487,7 @@ function jobForm(job=null,onboarding=false){
  const preferences=job?.preferences||defaultProfileAddress(profile);
  const description=job?.description||'';
  const content=`${onboarding?steps(3,3,'Job'):''}<h1>${icon('cards')} ${job?.id?'Job bearbeiten':'Neuer Job'}</h1>
-  <p class="intro">Lege die Anforderungen für Deinen Job fest. Der Zähler zeigt Dir, wie viele Kandidaten dazu passen.</p>
+  <p class="intro">Lege die Anforderungen für Deinen Job fest. Sobald Deine Matching-Angaben vollständig sind, siehst Du, wie viele Kandidaten dazu passen.</p>
   <div class="desktop-editor">
     <form data-form="job" data-workplace-profile="${E(profile?.id||'')}" data-workplace-default="${!job}" data-draft-key="${E(key)}" data-count-form id="matching-form" class="box" novalidate>
      <div class="job-validation" tabindex="-1" hidden></div>
@@ -453,7 +530,10 @@ function paintWorkplacePicker(form,emptyLabel='Keine gespeicherten Standorte'){
  picker.innerHTML=`<label class="field"><span>Gespeicherten Standort auswählen</span>
   <select name="workplace"${choices.length?'':' disabled'}>
    <option value="" disabled>${choices.length?'Individuelle Adresse':E(emptyLabel)}</option>
-   ${choices.map((place,index)=>`<option value="${index}">${E(place.name)} · ${E(place.city)}</option>`).join('')}
+   ${choices.map((place,index)=>{
+    const label=place.name.split(' · ').includes(place.city)?place.name:place.name+' · '+place.city;
+    return `<option value="${index}">${E(label)}</option>`;
+   }).join('')}
   </select></label>`;
  syncWorkplaceChoice(form);
 }
@@ -594,7 +674,7 @@ async function loadRecruiterDashboardFilter(){
  if(!slot||!data||data.loading||data.jobs)return;
  data.loading=true;
  try{
-  const [jobs,applications,costs]=await Promise.all([api('jobs'),api('applications'),api('recruiter_costs').catch(()=>null)]);
+  const [jobs,applications,costs]=await Promise.all([readRecruiterJobs(),api('applications'),api('recruiter_costs').catch(()=>null)]);
   if(!slot.isConnected||state.recruiterDashboard!==data)return;
   Object.assign(data,{jobs,applications,costs});
   slot.innerHTML=`<div class="toolbar">${companyProfileFilter('dashboard-profile-filter')}</div>`;
@@ -777,11 +857,37 @@ function jobFilterSummary(job){
   <dl>${filters.map(([label,value])=>`<div><dt>${E(label)}</dt><dd>${E(value)}</dd></div>`).join('')}</dl>
  </section>`;
 }
+const jobCountKey=id=>'recruiter-job-count:'+id;
+async function paintRecruiterJobCount(target){
+ const id=target.dataset.jobCandidateCount;
+ try{
+  const count=await resources.load(jobCountKey(id),async()=>{
+   const [job]=await api('jobs',{job_id:id});
+   return job?.candidate_count;
+  },15000);
+  if(target.isConnected)target.textContent=Number.isFinite(count)?`Aktuell: ${formatCount(count)} Treffer`:'Trefferzahl nicht verfügbar';
+ }catch{
+  if(target.isConnected)target.textContent='Trefferzahl nicht verfügbar';
+ }
+}
+const recruiterJobCountObserver=new IntersectionObserver(entries=>{
+ for(const entry of entries){
+  if(!entry.isIntersecting||!entry.target.isConnected)continue;
+  recruiterJobCountObserver.unobserve(entry.target);
+  void paintRecruiterJobCount(entry.target);
+ }
+});
+function observeRecruiterJobCounts(){
+ recruiterJobCountObserver.disconnect();
+ app.querySelectorAll('[data-job-candidate-count]').forEach(target=>recruiterJobCountObserver.observe(target));
+}
 function jobCard(j){
  const statuses=jobStatuses;
  const options=statuses.map(([value,label])=>`<option value="${value}" ${j.status===value?'selected':''}>${label}</option>`).join('');
  const warning=hasMinimumSkills(j.skills)?'':'<p class="minimum-warning">Vor der Veröffentlichung bitte mindestens 5 Skills auswählen.</p>';
- return `<article class="job-card recruiter-job-card"><label class="job-state-row"><span>Status</span><select tabindex="-1" data-job-status="${j.id}" aria-label="Status von ${E(j.title)}">${options}</select></label><div class="match-heading"><div><h3>${E(j.title)}</h3>${jobCompany(j.company,jobIndustry(j))}<div class="meta">${E(j.city||j.preferences?.city)}</div></div></div>${warning}<p class="job-status" ${Number.isFinite(j.candidate_count)?"data-hit-counter":""}>${E(statuses.find(([value])=>value===j.status)?.[1])} · Aktuell: ${formatCount(j.candidate_count)} Treffer</p>${jobFilterSummary(j)}${skillsHeading}${selectedSkillList(j.skills??[])}${jobDescriptionBlock(j.description)}<div class="card-footer"><small>Bearbeitet am ${date(j.updated_at)}</small><div class="row"><a href="#/recruiter/job/${j.id}" class="btn secondary small">Bearbeiten</a>${actionButton('own-preview','Vorschau','secondary small',`data-id="${j.id}"`)}<a class="btn secondary small desktop-only" href="#/recruiter/applications/job/${E(j.id)}">Bewerbungen</a>${actionButton('delete-job','Job löschen','danger small',`data-id="${E(j.id)}"`)}</div></div></article>`;
+ const count=Number.isFinite(j.candidate_count)?`Aktuell: ${formatCount(j.candidate_count)} Treffer`:
+  `<span data-job-candidate-count="${E(j.id)}" aria-live="polite">Treffer werden geladen …</span>`;
+ return `<article class="job-card recruiter-job-card"><label class="job-state-row"><span>Status</span><select tabindex="-1" data-job-status="${j.id}" aria-label="Status von ${E(j.title)}">${options}</select></label><div class="match-heading"><div><h3>${E(j.title)}</h3>${jobCompany(j.company,jobIndustry(j))}<div class="meta">${E(j.city||j.preferences?.city)}</div></div></div>${warning}<p class="job-status">${E(statuses.find(([value])=>value===j.status)?.[1])} · ${count}</p>${jobFilterSummary(j)}${skillsHeading}${selectedSkillList(j.skills??[])}${jobDescriptionBlock(j.description)}<div class="card-footer"><small>Bearbeitet am ${date(j.updated_at)}</small><div class="row"><a href="#/recruiter/job/${j.id}" class="btn secondary small">Bearbeiten</a>${actionButton('own-preview','Vorschau','secondary small',`data-id="${j.id}"`)}<a class="btn secondary small desktop-only" href="#/recruiter/applications/job/${E(j.id)}">Bewerbungen</a>${actionButton('delete-job','Job löschen','danger small',`data-id="${E(j.id)}"`)}</div></div></article>`;
 }
 async function changeJobLifecycle(job,operation,acknowledgedCount=null){
  const origin=pageVersion;
@@ -802,6 +908,7 @@ async function changeJobLifecycle(job,operation,acknowledgedCount=null){
   return;
  }
  if(modal.open)modal.close();
+ resources.invalidate(jobCountKey(job.id));
  toast(deleting?'Job gelöscht.':'Job pausiert.');
  await render();
 }
@@ -813,22 +920,17 @@ async function changeRecruiterJobStatus(select){
  await withButton(select,async()=>{
   if(status==='closed'){await changeJobLifecycle(job,'pause');return;}
   await api('save_job',{...job,status});
+  resources.invalidate(jobCountKey(job.id));
   toast('Status gespeichert.');
   await render();
  });
 }
 const compactScore=value=>`<span class="desktop-compact-score"><span class="sr-only">Match-Score </span>${E(value)} %</span>`;
 const jobStatusLabel=job=>jobStatuses.find(([value])=>value===job.status)?.[1]||'';
-const recruiterJobRows=(jobs,applications=[])=>{
- const counts=new Map();
- for(const application of applications){
-  if(application.state==='pending')counts.set(application.id,(counts.get(application.id)||0)+1);
- }
- return jobs.map(job=>({
+const recruiterJobRows=jobs=>jobs.map(job=>({
   id:job.id,label:job.title,subtitle:job.company||'',
-  status:jobStatusLabel(job),applicationCount:counts.get(job.id)||0,job
- }));
-};
+  status:jobStatusLabel(job),applicationCount:job.pending_application_count??0,job
+}));
 function recruiterJobList(key,rows,_headings,active){
  return `<section class="desktop-table-panel desktop-only" aria-label="Deine Jobs">
   <ul class="desktop-job-list" data-desktop-choice-list="${E(key)}">
@@ -846,7 +948,7 @@ const candidateTableRows=jobs=>jobs.map(job=>({
 }));
 function ownJobDetails(items,preferred=''){
  return items.length
-  ? desktopDetails('recruiter-jobs',recruiterJobRows(items,state.ownApplications),[],item=>jobCard(item.job),preferred,recruiterJobList)
+  ? desktopDetails('recruiter-jobs',recruiterJobRows(items),[],item=>jobCard(item.job),preferred,recruiterJobList)
   : empty(state.jobs.length?'Keine Jobs in dieser Auswahl':'Noch keine Jobs',state.jobs.length?'Passe die Filter an.':'Lege Deinen ersten Job an.');
 }
 function activeFeedJob(){
@@ -875,9 +977,8 @@ async function jobsPage(role){
   currentDesktopItem('talent-feed',state.feed.map(job=>job.id),preferred);
   return shell(role,'jobs',`<h1 class="page-title swipe-page-title">${icon('cards')} Deine Jobs</h1><span id="stack-count" class="sr-only" aria-live="polite">${state.feed.length} ${state.feed.length===1?'Job':'Jobs'}</span><div id="candidate-feed">${candidateFeed()}</div>`);
  }
- const [jobs,applications]=await Promise.all([api('jobs'),api('applications').catch(()=>[])]);
+ const jobs=await readRecruiterJobs();
  state.jobs=jobs;
- state.ownApplications=applications;
  const publishedJobs=jobs.filter(job=>job.status==='published').length;
  return shell(role,'jobs',`<div class="row between"><div><h1>${icon('cards')} Deine Jobs</h1><p class="intro">${publishedJobs} ${publishedJobs===1?'Job':'Jobs'} veröffentlicht</p></div><a class="btn orange" href="#/recruiter/job/new">+ Neuer Job</a></div><div class="toolbar"><label class="field"><span>Unternehmensprofil</span><select tabindex="-1" id="job-company-filter"><option value="">Alle Unternehmensprofile</option>${state.me.company_profiles.map(profile=>`<option value="${E(profile.id)}">${E(profile.public_name)}</option>`).join('')}</select></label><label class="field"><span>Status</span><select tabindex="-1" id="job-status-filter"><option value="">Alle</option><option value="published">Veröffentlicht</option><option value="draft">Entwurf</option><option value="closed">Pausiert</option></select></label></div><div id="own-jobs">${ownJobDetails(jobs,routeKey.split('/')[3])}</div>`);
 }
@@ -893,7 +994,7 @@ function locationBlock(j){const location=j.location;let map='';if(location?.lat&
 function swipeCard(){const j=activeFeedJob();if(!j)return empty('Keine weiteren passenden Jobs','Mit Deinem aktuellen Filter gibt es keine weiteren Jobs. Du kannst Deine Auswahl anpassen oder später wiederkommen.','<a class="btn secondary" href="#/talent/filter">Job-Filter bearbeiten</a>');if(!Array.isArray(j.match?.details)){
  const details=`<div class="match-heading"><div><h2>${E(j.title)}</h2>${jobCompany(j.company,j.industry,'swipe-company')}</div>${scoreWithInfo(j.match.score)}</div>`;
  return `<article class="box feed-detail-placeholder">${details}<div data-feed-detail-status>${loadPlaceholder('Jobdetails werden geladen …')}</div></article>`;
-}return `<article class="swipe-card" data-job="${j.id}" aria-label="${E(j.title)}"><div class="swipe-feedback" aria-hidden="true"></div><div class="candidate-fixed-header swipe-grab" title="Nach links ablehnen, nach rechts bewerben, nach unten merken"><div class="match-heading"><div><h2>${E(j.title)}</h2>${jobCompany(j.company,j.industry,'swipe-company')}</div>${scoreWithInfo(j.match.score)}</div>${jobFacts(j,showJobFacts())}${matchOverview(j.match)}</div><div class="card-scroll">${candidateJobContent(j,state.me.candidate?.skills,true)}</div><div class="swipe-actions"><button type="button" class="skip" data-action="skip" aria-label="Job ablehnen" title="Ablehnen">${icon('close',true)}<span class="desktop-label" aria-hidden="true">Ablehnen</span></button><button type="button" class="bookmark" data-action="bookmark" aria-label="Job merken" title="Job merken">${icon('bookmark')}<span class="desktop-label" aria-hidden="true">Merken</span></button><button type="button" class="apply" data-action="apply" aria-label="Auf diesen Job bewerben" title="Bewerben">${icon('send')}<span class="desktop-label" aria-hidden="true">Bewerben</span></button></div></article>`;}
+}return `<article class="swipe-card" data-job="${j.id}" aria-label="${E(j.title)}"><div class="swipe-feedback" aria-hidden="true"></div><div class="candidate-fixed-header swipe-grab" title="Nach links ablehnen, nach rechts bewerben, nach unten merken"><div class="match-heading"><div><h2>${E(j.title)}</h2>${jobCompany(j.company,j.industry,'swipe-company')}</div>${scoreWithInfo(j.match.score)}</div>${jobFacts(j,showJobFacts())}${matchOverview(j.match)}</div><div class="card-scroll">${candidateJobContent(j,state.me.candidate?.skills)}</div><div class="swipe-actions"><button type="button" class="skip" data-action="skip" aria-label="Job ablehnen" title="Ablehnen">${icon('close',true)}<span class="desktop-label" aria-hidden="true">Ablehnen</span></button><button type="button" class="bookmark" data-action="bookmark" aria-label="Job merken" title="Job merken">${icon('bookmark')}<span class="desktop-label" aria-hidden="true">Merken</span></button><button type="button" class="apply" data-action="apply" aria-label="Auf diesen Job bewerben" title="Bewerben">${icon('send')}<span class="desktop-label" aria-hidden="true">Bewerben</span></button></div></article>`;}
 const matchExplanationTitle='Wie wird der Match-Score berechnet?';
 const matchExplanationBody='<p>Der Match-Score zeigt beiden Seiten, wie gut die Skills die Anforderungen des Jobs erfüllen. Top Skills zählen beim Matching stärker. Ein ausgefüllter Stern zeigt, dass beide Seiten den Skill markiert haben. Eine Kontur zeigt eine einseitige Markierung. Zusätzliche Skills senken den Score nicht.</p>';
 const matchExplanation=()=>`<details class="match-explanation"><summary>${matchExplanationTitle}</summary>${matchExplanationBody}</details>`;
@@ -924,8 +1025,8 @@ function jobDescriptionBlock(description){
  if(!description?.trim())return '';
  return `<section class="job-description-block"><h3 class="job-description-title">Kurzbeschreibung</h3><p class="match-description">${E(description)}</p></section>`;
 }
-function candidateJobContent(job,candidateSkills,swipe=false){
- return `${skillList(job,{candidateSkills,swipe})}${jobDescriptionBlock(job.description)}<div class="candidate-job-location">${locationBlock(job)}</div>`;
+function candidateJobContent(job,candidateSkills){
+ return `${skillList(job,{candidateSkills})}${jobDescriptionBlock(job.description)}<div class="candidate-job-location">${locationBlock(job)}</div>`;
 }
 function applicationStatus(state){
  return `<span class="status-pill ${E(state)}">${E(statuses[state])}</span>`;
@@ -1090,7 +1191,7 @@ function applicationCard(a,role){
  const title=recruiter?a.candidate_name:a.title;
  const id=E(a.application_id);
  const detailsId='application-details-'+a.application_id;
- const skills=skillList(a,{candidateSkills:a.candidate_skills||[],perspective:role});
+ const skills=skillList(a,{candidateSkills:a.candidate_skills||[]});
  const dates=`<div class="result-dates"><span>Beworben am ${date(a.applied_at)}</span><span class="status-pill ${E(a.state)}">${E(statuses[a.state])}</span></div>`;
  const actions=recruiter&&a.state==='pending'
   ? `<div class="application-actions">${actionButton('confirm-reject','Ablehnen','danger', 'data-id="'+id+'"')}${meetsMatchPolicy(a.match,a.skills,a.candidate_skills)?actionButton('confirm-match','Annehmen · 15 €','','data-id="'+id+'"'):'<span class="hint">Du kannst die Bewerbung ab 50 % Match-Score annehmen, wenn beide Seiten mindestens 5 Skills haben.</span>'}</div>` : '';
@@ -1355,12 +1456,12 @@ async function loadMatchPicture(avatar){
   }finally{URL.revokeObjectURL(url);}
  }catch{/* Contact details remain visible when an image is missing or cannot be loaded. */}
 }
-function showDetails(j,application=null){
+function showDetails(j,application=null,justAccepted=false){
  const role=state.me.profile.role;
  const recruiter=role==='recruiter';
  const contact=application?applicationContact(application,role):'';
  const candidate=application?.state==='matched'&&recruiter?candidateFullProfile(application):'';
- const skills=skillList(j,{candidateSkills:application?.candidate_skills||state.me.candidate?.skills||[],perspective:role});
+ const skills=skillList(j,{candidateSkills:application?.candidate_skills||state.me.candidate?.skills||[]});
  const company=jobCompany(j.company,j.industry);
  const location=application?E([j.city,recruiter?optionLabel(j.properties?.office):'',optionLabel(j.language)].filter(Boolean).join(' · ')):'';
  const header=`<div class="match-heading"><div>${company}${application?`<div class="meta">${location}</div>`:''}</div>${scoreWithInfo(j.match.score)}</div>`;
@@ -1369,7 +1470,8 @@ function showDetails(j,application=null){
  showModal(application&&recruiter?application.candidate_name:j.title,`
   ${header}${recruiter?'':jobFacts(j,showJobFacts())}${matchOverview(j.match)}${status}
   ${contact}${candidate}<div class="match-modal-skills">${skills}</div>${jobDetails}${matchExplanation()}`,
-  actionButton('close-modal','Zurück zur Übersicht','secondary'));
+  justAccepted?'<a class="btn" href="#/recruiter/matches">Zu den Matches</a>':
+   actionButton('close-modal','Zurück zur Übersicht','secondary'));
 }
 function safeLink(value){try{const u=new URL(value);return ['https:','http:'].includes(u.protocol)?u.href:'';}catch{return '';}}
 function candidateAbout(a){
@@ -1511,6 +1613,7 @@ async function saveJobForm(form,status){
   if(!validateJobPublication(form,true,jobStatus==='published'))return null;
  }
  const result=await api('save_job',{id:state.draft.job?.id||null,title:f.title,description:f.description,company_profile_id:f.company_profile_id,status:jobStatus,preferences:readPrefs(form,true),skills:state.skills});
+ resources.invalidate(jobCountKey(result.id));
  if(!form.isConnected||getSession()?.user?.id!==owner)throw new SessionExpired();
  form.dataset.committed='true';
  delete state.draft.jobEdits?.[form.dataset.draftKey];
@@ -1610,7 +1713,7 @@ async function render(){const version=++pageVersion;clearTimeout(countTimer);con
   if(!state.me.company_profiles.length){go('/recruiter/company/new');return;}
   if(id==='new')content=newJobForm();
   else {
-   const jobs=await api('jobs');
+   const jobs=await readRecruiterJobs(id);
    if(version!==pageVersion)return;
    const job=jobs.find(item=>item.id===id);
    if(!job)throw Error('Job nicht gefunden.');
@@ -1630,6 +1733,7 @@ async function render(){const version=++pageVersion;clearTimeout(countTimer);con
  else content=await dashboard(role);
  if(version!==pageVersion)return;
  app.innerHTML=content;
+ observeRecruiterJobCounts();
  const profileTabs=app.querySelector('[data-profile-tabs]:has([data-desktop-tab])');
  if(profileTabs&&state.desktopProfileTab)activateDesktopTab(profileTabs,state.desktopProfileTab);
  const picturePanel=app.querySelector('.profile-picture');
@@ -1846,7 +1950,7 @@ if(action==='toggle-mobile-details'){
 }
 if(action==='import-job-link'||action==='import-job-text'){await importJob(button,action==='import-job-link');return;}
 if(action==='use-imported-job-title'){const title=button.closest('[data-job-import-results]').importedTitle;const field=button.form.elements.title;if(title){field.value=title;field.dispatchEvent(new Event('input',{bubbles:true}));updateDesktopJobPreview();field.focus();}return;}
-if(['fire','remove-skill','add-skill','add-package'].includes(action)){if(action==='fire'){const skill=state.skills.find(x=>String(x.id)===id);if(!skill.fire&&state.skills.filter(s=>s.fire).length>=3){toast('Maximum von 3 Top Skills erreicht.',true);return;}skill.fire=!skill.fire;}else if(action==='remove-skill')state.skills=state.skills.filter(x=>String(x.id)!==id);else{const incoming=action==='add-package'?state.package||[]:[state.catalog.get(Number(id))];for(const skill of incoming){if(!skill||state.skills.some(x=>x.id===skill.id))continue;if(state.skills.length>=10){toast('Maximum von 10 Skills erreicht.',true);break;}state.skills.push({id:skill.id,label:skill.label,fire:false});}}paintSkills();saveDraft();scheduleCount();return;}
+if(['fire','remove-skill','toggle-skill','add-package'].includes(action)){updateSkillSelection(button,action,id);return;}
 if(action==='occupation'){await withButton(button,async()=>{const origin=pageVersion;const items=await api('catalog',{kind:'package',id:Number(id)});if(origin!==pageVersion||!document.querySelector('#occupation-results'))return;state.package=items;items.forEach(s=>state.catalog.set(s.id,s));document.querySelector('#occupation-results').innerHTML=actionButton('add-package','Bis zu 10 Vorschläge übernehmen','secondary small')+items.map(skillResult).join('');});return;}
 if(action==='confirm-reject'){showModal('Bewerbung ablehnen?','<p>Die Bewerbung erscheint im Verlauf mit dem Status „Abgelehnt“. Es entstehen keine Kosten.</p>',actionButton('close-modal','Abbrechen','secondary')+actionButton('reject','Ablehnen','danger',`data-id="${id}"`));return;}if(action==='confirm-match'){const a=state.applications.find(a=>a.application_id===id);showModal('Bewerbung annehmen?',`<p>Bitte bestätige, dass Du die Bewerbung von <strong>${E(a.candidate_name)}</strong> für <strong>${E(a.title)}</strong> annimmst.</p><p>Danach stellen wir Dir die hinterlegten Kontaktdaten und das Match-Profil von <strong>${E(a.candidate_name)}</strong> bereit.</p><div class="notice orange"><strong>15 € simulierte Matchkosten</strong><br>Testmodus: Es wird kein Geld berechnet.</div>`,actionButton('close-modal','Abbrechen','secondary')+actionButton('accept','Annehmen','',`data-id="${id}"`));return;}
 if(action==='confirm-withdraw-application'){
@@ -1929,7 +2033,7 @@ case 'delete-job':case 'confirm-job-lifecycle':{
  break;
 }
 case 'full-profile':case 'application-detail':{const a=state.applications.find(a=>a.application_id===id);if(a)showDetails(a,a);break;}
-case 'accept':case 'reject':const result=await api('decide',{application_id:id,decision:action});modal.close();if(result.changed===false){toast('Die Bewerbung wurde bereits bearbeitet.',true);await render();break;}toast(action==='accept'?'Bewerbung angenommen. Ihr habt ein Match und seht Eure Kontaktdaten.':'Abgelehnt.');await render();if(action==='accept'){const accepted=state.applications.find(a=>a.application_id===id);if(accepted)showDetails(accepted,accepted);}break;
+case 'accept':case 'reject':const result=await api('decide',{application_id:id,decision:action});modal.close();if(result.changed===false){toast('Die Bewerbung wurde bereits bearbeitet.',true);await render();break;}toast(action==='accept'?'Bewerbung angenommen. Ihr habt ein Match und seht Eure Kontaktdaten.':'Abgelehnt.');await render();if(action==='accept'){const accepted=state.applications.find(a=>a.application_id===id);if(accepted)showDetails(accepted,accepted,true);}break;
 case 'withdraw-application':{
  const result=await api('withdraw_application',{application_id:id});
  modal.close();
@@ -1982,7 +2086,7 @@ document.addEventListener('input',event=>{
  else lastAcceptedInput.set(input,input.value);
 },true);
 const formatCount=value=>new Intl.NumberFormat('de-DE').format(value);
-function availabilityCounter(role){return `<aside class="counter" aria-live="polite" aria-atomic="true">${icon('target',true)}<strong id="live-count">…</strong><small>Treffer</small></aside>`;}
+function availabilityCounter(role){return `<aside class="counter" aria-live="polite" aria-atomic="true" hidden>${icon('target',true)}<strong id="live-count">…</strong><small>Treffer</small></aside>`;}
 function countPayload(form){
  const fields=new FormData(form);
  if(form.dataset.form==='company'){
@@ -1999,16 +2103,35 @@ function countPayload(form){
   company_profile_id:fields.get('company_profile_id')
  };
 }
+function countIsReady(kind,{preferences,properties,skills,company_profile_id}){
+ const validPostcode=/^\d{5}$/.test(preferences.postcode);
+ if(kind==='company')return validPostcode&&Object.values(properties).every(Boolean);
+ if(!hasMinimumSkills(skills)||!preferences.employment.length||!preferences.experience.length||!preferences.leadership.length)return false;
+ if(kind==='job')return Boolean(company_profile_id)&&validPostcode&&
+  Number.isInteger(preferences.travel)&&preferences.travel>=0&&preferences.max_salary>0;
+ return (validPostcode||preferences.radius==='de')&&preferences.travel.length>0&&preferences.min_salary>0;
+}
 function scheduleCount(delay=250){
  const form=document.querySelector('[data-count-form]'),out=document.querySelector('#live-count');
  if(!form||!out)return;
  const payload=countPayload(form);
+ const counter=out.parentElement;
+ if(!countIsReady(form.dataset.form,payload)){
+  clearTimeout(countTimer);
+  ++countVersion;
+  delete out._countKey;
+  counter.hidden=true;
+  counter.removeAttribute('aria-busy');
+  counter.removeAttribute('data-hit-counter');
+  return;
+ }
  const key=JSON.stringify(payload);
  if(key===out._countKey)return;
  out._countKey=key;
  clearTimeout(countTimer);
  const request=++countVersion,version=pageVersion;
  const isCurrent=()=>request===countVersion&&version===pageVersion&&out.isConnected;
+ counter.hidden=false;
  out.textContent='…';
  out.parentElement.removeAttribute('data-hit-counter');
  out.parentElement.setAttribute('aria-busy','true');
@@ -2076,7 +2199,7 @@ if(el.id==='candidate-application-status-filter'){
  refreshApplicationList();
  return;
 }
-if(el.id==='show-job-facts'){localStorage.setItem(jobFactsPreferenceKey(),el.checked?'on':'off');return;}if(el.matches('select[data-match-status]')){await saveMatchStatus(el);return;}if(el.id==='dashboard-profile-filter'){filterRecruiterDashboard(el.value);return;}if(el.form?.dataset.form==='job'&&['company_profile_id','workplace'].includes(el.name)){changeWorkplace(el);return;}if(el.id==='cost-profile-filter'||el.id==='cost-job-filter'){filterCosts();return;}if(el.dataset.jobStatus){await changeRecruiterJobStatus(el);return;}if(el.name==='experience_current'){const end=el.closest('.experience-row').querySelector('[name=experience_end]');end.disabled=el.checked;if(el.checked)end.value='';}if(el.name==='radius'&&el.form?.dataset.form==='candidate')syncCandidatePostcodeRequired(el.form);if(el.closest('[data-count-form]')){saveDraft();scheduleCount();}if(el.id==='job-company-filter'||el.id==='job-status-filter'){const profile=document.querySelector('#job-company-filter').value,status=document.querySelector('#job-status-filter').value;const jobs=state.jobs.filter(j=>(!profile||j.company_profile_id===profile)&&(!status||j.status===status));document.querySelector('#own-jobs').innerHTML=ownJobDetails(jobs);observeHitCounters();}if(['application-company-filter','application-job-filter','application-history','match-status-filter'].includes(el.id))refreshApplicationList();if(el.id==='document-upload'&&el.files[0])await withButton(null,async()=>{toast('Datei wird hochgeladen …');await upload(el.files[0]);resources.invalidate('me');toast('Datei sicher gespeichert.');await render();});if(el.name==='postcode'&&el.form?.dataset.form!=='candidate'&&/^\d{5}$/.test(el.value)&&getSession()){try{const postcode=el.value;const loc=await api('postcode',{postcode});if(!el.isConnected||el.value!==postcode)return;const hint=el.form?.querySelector('#postcode-hint');if(hint)hint.textContent=loc?loc.city:'PLZ nicht gefunden.';const city=el.form?.elements.city;if(city&&!city.value&&loc){city.value=loc.city;if(el.form.dataset.form==='job'){syncWorkplaceChoice(el.form);saveDraft();}}}catch{}}});
+if(el.id==='show-job-facts'){localStorage.setItem(jobFactsPreferenceKey(),el.checked?'on':'off');return;}if(el.matches('select[data-match-status]')){await saveMatchStatus(el);return;}if(el.id==='dashboard-profile-filter'){filterRecruiterDashboard(el.value);return;}if(el.form?.dataset.form==='job'&&['company_profile_id','workplace'].includes(el.name)){changeWorkplace(el);return;}if(el.id==='cost-profile-filter'||el.id==='cost-job-filter'){filterCosts();return;}if(el.dataset.jobStatus){await changeRecruiterJobStatus(el);return;}if(el.name==='experience_current'){const end=el.closest('.experience-row').querySelector('[name=experience_end]');end.disabled=el.checked;if(el.checked)end.value='';}if(el.name==='radius'&&el.form?.dataset.form==='candidate')syncCandidatePostcodeRequired(el.form);if(el.closest('[data-count-form]')){saveDraft();scheduleCount();}if(el.id==='job-company-filter'||el.id==='job-status-filter'){const profile=document.querySelector('#job-company-filter').value,status=document.querySelector('#job-status-filter').value;const jobs=state.jobs.filter(j=>(!profile||j.company_profile_id===profile)&&(!status||j.status===status));document.querySelector('#own-jobs').innerHTML=ownJobDetails(jobs);observeRecruiterJobCounts();}if(['application-company-filter','application-job-filter','application-history','match-status-filter'].includes(el.id))refreshApplicationList();if(el.id==='document-upload'&&el.files[0])await withButton(null,async()=>{toast('Datei wird hochgeladen …');await upload(el.files[0]);resources.invalidate('me');toast('Datei sicher gespeichert.');await render();});if(el.name==='postcode'&&el.form?.dataset.form!=='candidate'&&/^\d{5}$/.test(el.value)&&getSession()){try{const postcode=el.value;const loc=await api('postcode',{postcode});if(!el.isConnected||el.value!==postcode)return;const hint=el.form?.querySelector('#postcode-hint');if(hint)hint.textContent=loc?loc.city:'PLZ nicht gefunden.';const city=el.form?.elements.city;if(city&&!city.value&&loc){city.value=loc.city;if(el.form.dataset.form==='job'){syncWorkplaceChoice(el.form);saveDraft();}}}catch{}}});
 let pointer;
 function resetDrag(){if(!pointer)return;const card=pointer.card;pointer=null;card.classList.remove('dragging');card.style.transform='';card.querySelector('.swipe-feedback').textContent='';card.removeAttribute('data-direction');}
 document.addEventListener('pointerdown',e=>{const card=e.target.closest('.swipe-card');if(pointer||e.isPrimary===false||!card||state.busy||e.button!==0||e.target.closest('button,a,iframe,input'))return;pointer={id:e.pointerId,card,x:e.clientX,y:e.clientY,dx:0,dy:0,vertical:!!e.target.closest('.swipe-grab')};});
@@ -2113,7 +2236,7 @@ document.addEventListener('input',event=>{
  if(!event.target.dataset.search)refreshJobValidation(event.target.form);
 });
 document.addEventListener('click',event=>{
- if(event.target.closest('[data-action="add-skill"],[data-action="add-package"],[data-action="remove-skill"]')){
+ if(event.target.closest('[data-action="toggle-skill"],[data-action="add-package"],[data-action="remove-skill"]')){
   refreshJobValidation(app.querySelector('[data-form="job"]'));
  }
 });

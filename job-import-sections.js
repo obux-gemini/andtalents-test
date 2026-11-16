@@ -38,3 +38,4 @@ export function jobSkillSections(input){
  }
  return sections.join('\n');
 }
+

@@ -118,6 +118,14 @@
     white-space: normal;
     overflow-wrap: anywhere;
   }
+  .desktop-shell > .desktop-nav-recruiter > a {
+    display: grid;
+    grid-template-columns: 1.25rem minmax(0, 1fr);
+  }
+  .desktop-shell > .desktop-nav-recruiter > a > :is(.fa-icon, .currency-symbol) {
+    display: block;
+    text-align: center;
+  }
   .desktop-workspace { min-width: 0; }
   .desktop-shell .page {
     width: 100%;

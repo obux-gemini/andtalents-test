@@ -30,15 +30,14 @@ export function matchOverview(match){
   const legend=statuses.map(([style,label],index)=>`<span class="match-count ${style}"><b>${counts[index]}</b> ${label}</span>`).join('');
   return `<div class="match-overview"><div class="match-coverage" style="--skill-columns:${Math.max(1,ordered.length)}" aria-label="${summary}">${ordered.map(x=>{const [style,label]=statuses[x.factor===1?0:x.factor>0?1:2];return `<span class="match-unit ${style}" title="${E(x.label)} · ${label}"><span class="match-bar-star">${topSkillMark(x.fire,x.candidate_fire)}</span></span>`;}).join('')}</div><div class="match-counts">${legend}</div></div>`;
 }
-export function skillList(job,{candidateSkills=[],perspective='talent',swipe=false}={}){
+export function skillList(job,{candidateSkills=[]}={}){
   const d=job.match?.details||[];
   const used=new Set(d.filter(x=>x.factor>0).map(x=>Number(x.via)));
   const extras=candidateSkills.filter(x=>!used.has(Number(x.id))&&!d.some(y=>Number(y.id)===Number(x.id)));
   const comparison=x=>{
     if(x.factor<=0||!x.via_label||Number(x.via)===Number(x.id))return '';
     const skill=E(x.via_label);
-    const label=swipe&&x.factor<1?skill:`${perspective==='recruiter'?'Bewerber':'Profil'}: ${skill}`;
-    return `<div class="match-via">${label}</div>`;
+    return `<div class="match-via">${x.factor===1?`Passend (über ${skill})`:skill}</div>`;
   };
   const rows=items=>items.map(x=>`<li class="match-row ${x.factor===1?'pass':x.factor>0?'close':'open'}"><div class="match-skill-name"><span>${E(x.label)}</span>${topSkillMark(x.fire,x.candidate_fire)}</div>${comparison(x)}<span class="sr-only">${x.factor===1?'Passend':x.factor>0?'Ähnlich':'Offen'}</span></li>`).join('');
   const extraRows=extras.map(x=>`<li class="match-row extra"><div class="match-skill-name"><span>${E(x.label)}</span>${topSkillMark(false,x.fire)}</div><span class="sr-only">Zusätzlich im Profil</span></li>`).join('');
