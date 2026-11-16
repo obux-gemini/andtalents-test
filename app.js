@@ -153,7 +153,7 @@ function header(role,current){
  </a>`:'';
  return `<header class="header ${session?'':'guest-header'}">
   ${dashboard}
-  <a class="brand" href="#/"><img class="logo" src="./logo.webp" alt="&TALENTS Logo"><span class="app-version">Version 0.15.84</span></a>
+  <a class="brand" href="#/"><img class="logo" src="./logo.webp" alt="&TALENTS Logo"><span class="app-version">Version 0.15.85</span></a>
   <div class="header-actions">${profile}</div>
  </header>`;
 }
@@ -164,7 +164,7 @@ function nav(role,current,desktop=false){
   [['jobs','cards','Jobs'],['applications','send','Bewerbungen'],['matches','match','Matches']];
  if(desktop){
   links.unshift(['dashboard','home','Dashboard']);
-  if(role==='recruiter')links.push(['costs','€','Kosten'],['companies','company','Unternehmensprofile']);
+  if(role==='recruiter')links.push(['costs','€','Kosten'],['companies','company','Unternehmensprofile'],['feedback','edit','Feedback']);
   links.push(['profile','user','Mein Profil']);
  }else if(role==='recruiter')links.push(['costs','€','Kosten']);
  return `<nav class="${desktop?`desktop-nav desktop-nav-${role}`:'nav'}" aria-label="Hauptnavigation">${links.map(([path,glyph,title])=>{
@@ -752,7 +752,32 @@ async function dashboard(role){if(role==='talent'&&!state.me.candidate){go('/tal
   <div class="stats" id="dashboard-stats" aria-label="Deine Übersicht">${dashboardStats(role,stats,feed)}</div>${desktopContent}
   <div class="cards dashboard-shortcuts">${nextJob}
    <div class="box"><h2>${role==='talent'?'Dein Job-Filter':'Neue Bewerbungen'}</h2><p class="intro">${role==='talent'?'Passe Deine Skills und Präferenzen an und sieh, wie sich Deine Treffer verändern.':'Prüfe die fachliche Passung und entscheide, mit wem Du in Kontakt treten möchtest.'}</p><a class="btn secondary" href="#/${role}/${role==='talent'?'filter':'applications'}">${role==='talent'?'Filter bearbeiten':'Bewerbungen prüfen'} →</a></div>
-  </div>${role==='recruiter'?'<p class="settings-note">In der Testumgebung simulieren wir 15 € je Match.</p>':''}`);
+  </div>${role==='recruiter'?'<p class="settings-note">In der Testumgebung simulieren wir 15 € je Match.</p><a class="btn secondary" href="#/recruiter/feedback">Feedback geben</a>':''}`);
+}
+const feedbackQuestions=[
+ ['friction','Wo sind Sie beim Testen hängen geblieben?'],
+ ['decision','Was hat Ihnen bei der Entscheidung zwischen den Bewerbungen geholfen oder gefehlt?'],
+ ['use_case','Für welche Art von Stelle würden Sie &TALENTS ausprobieren?']
+];
+function recruiterFeedbackPage(){
+ const questions=feedbackQuestions.map(([name,label])=>`<label class="field"><span>${E(label)} (optional)</span><textarea name="${name}" rows="3" maxlength="1500"></textarea></label>`).join('');
+ const ratings=Array.from({length:10},(_,index)=>{
+  const value=index+1;
+  return `<label><input type="radio" name="rating" value="${value}" aria-label="${value}" required><span aria-hidden="true">${value}</span></label>`;
+ }).join('');
+ return shell('recruiter','feedback',`<h1 class="page-title">${icon('edit')} Feedback</h1>
+  <p class="intro">Wie war Ihr Test mit &amp;TALENTS?</p>
+  <form class="box recruiter-feedback" data-form="recruiter-feedback">
+   ${questions}
+   <fieldset class="feedback-rating">
+    <legend>Können Sie sich vorstellen, dass Ihnen &amp;TALENTS bei der Gewinnung von passenden Bewerberprofilen helfen kann?</legend>
+    <p class="hint">1 = überhaupt nicht, 10 = auf jeden Fall</p>
+    <div class="feedback-rating-options">${ratings}</div>
+   </fieldset>
+   <p class="hint">Bitte geben Sie keine personenbezogenen Daten Dritter ein.</p>
+   <div class="form-error" role="alert"></div>
+   <div class="form-actions"><button type="submit" class="btn orange">Feedback senden</button></div>
+  </form>`);
 }
 function costJobs(costs,profile){
  return costs.jobs.filter(job=>!profile||job.company_profile_id===profile);
@@ -1694,7 +1719,7 @@ async function render(){const version=++pageVersion;clearTimeout(countTimer);con
    return;
   }
  }
- if(!getSession()){state.me=null;if(route==='/'||route==='/home')app.innerHTML=home();else{const [,role,page]=route.split('/');if(!['talent','recruiter'].includes(role)){go('/');return;}app.innerHTML=page==='login'?loginPage(role):guestPage(role,page);}return;}
+ if(!getSession()){state.me=null;if(route==='/'||route==='/home')app.innerHTML=home();else{const [,role,page]=route.split('/');if(!['talent','recruiter'].includes(role)){go('/');return;}app.innerHTML=page==='login'?loginPage(role):role==='recruiter'&&page==='feedback'?narrow('<h1>Feedback</h1><p class="intro">Melden Sie sich als Recruiter an. Den Feedbackbogen finden Sie anschließend im Dashboard.</p><a class="btn orange" href="#/recruiter/login">Anmelden</a>'):guestPage(role,page);}return;}
  const me=await readMe();if(version!==pageVersion||!me)return;state.me=me;restoreDraft();
  if(!state.me.profile){const role=sessionStorage.getItem('onboarding-role')||'talent';app.innerHTML=accountPage(role);return;}
  const role=state.me.profile.role;
@@ -1726,6 +1751,7 @@ async function render(){const version=++pageVersion;clearTimeout(countTimer);con
  }
  else if(page==='jobs')content=await jobsPage(role);
  else if(page==='costs'&&role==='recruiter')content=await costsPage(version);
+ else if(page==='feedback'&&role==='recruiter')content=recruiterFeedbackPage();
  else if(page==='applications'||page==='matches')content=await applicationsPage(role,page==='matches');
  else if(page==='saved'&&role==='talent')content=await savedPage();
  else if(page==='profile')content=profilePage(role);
@@ -1844,6 +1870,18 @@ case 'login':await login(f.email,f.password);resources.invalidate();{const me=aw
 case 'account':{if(form.dataset.role==='recruiter'&&!validateCompanyFields(form))break;if(f.password!==f.repeat)throw Error('Die Passwörter stimmen nicht überein.');if(!validPassword(f.password))throw Error('Bitte alle fünf Passwortregeln erfüllen.');const role=form.dataset.role;sessionStorage.setItem('onboarding-role',role);if(!getSession())await signup(f.email,f.password);await api('save_account',{role,first_name:f.first_name,last_name:f.last_name,phone:f.phone||''});resources.invalidate();state.me=await readMe();go('/'+role+'/onboarding/'+(role==='talent'?'filter':'company'));break;}
 case 'candidate':{requireMinimumSkills();const preferences=readPrefs(form);if(!preferences.travel.length)throw Error('Bitte mindestens eine Reiseoption auswählen.');await api('save_candidate',{preferences,skills:state.skills});resources.invalidate();form.dataset.committed="true";delete state.draft.talentPrefs;delete state.draft.talentSkills;persistDraft();toast('Job-Filter gespeichert.');go('/talent/jobs');break;}
 case 'company':if(validateCompanyFields(form))await saveCompanyForm(form,f);break;
+case 'recruiter-feedback':{
+ const rating=Number(f.rating);
+ if(!Number.isInteger(rating)||rating<1||rating>10)throw Error('Bitte wählen Sie eine Einschätzung von 1 bis 10.');
+ const submission_id=form.dataset.feedbackSubmission??=crypto.randomUUID();
+ const payload={submission_id,rating,friction:f.friction.trim(),decision:f.decision.trim(),use_case:f.use_case.trim()};
+ await request('/rest/v1/rpc/app_recruiter_feedback',{body:{p_feedback:payload}});
+ if(form.isConnected){
+  form.removeAttribute('data-form');
+  form.innerHTML='<p role="status">Vielen Dank. Ihr Feedback wurde gespeichert.</p><a href="#/recruiter/dashboard" class="btn secondary">Zum Dashboard</a>';
+ }
+ break;
+}
 case 'job':{const publishedNow=form.elements.status.value==='published'&&state.draft.job?.status!=='published';const job=await saveJobForm(form);if(!job)break;toast(publishedNow?'Job veröffentlicht.':'Job gespeichert.');go('/recruiter/jobs'+(desktopViewport.matches&&job.id?'/'+job.id:''));break;}
 case 'workplace':{
  const {profile_id,id,name,address,postcode,city}=f;

@@ -73,6 +73,17 @@ html{scroll-padding-top:124px}main,dialog{overflow-wrap:anywhere}input,select,te
 .mobile-detail-toggle{margin:8px 0}
 .skill-overlap-notice{display:grid;gap:12px;margin:8px 0 12px}
 .skill-overlap-notice p{margin:0}
+.recruiter-feedback{max-width:720px}
+.feedback-rating{border:0;margin:0 0 18px;padding:0;min-inline-size:0}
+.feedback-rating legend{font-weight:600;padding:0}
+.feedback-rating-options{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px}
+.feedback-rating-options label{position:relative}
+.feedback-rating-options input{position:absolute;inset:0;width:100%;height:100%;margin:0;opacity:0;cursor:pointer}
+.feedback-rating-options span{display:grid;place-items:center;min-height:44px;border:1px solid var(--line);border-radius:8px}
+.feedback-rating-options input:checked+span{background:var(--teal);border-color:var(--teal);color:white}
+.feedback-rating-options input:focus-visible+span{outline:2px solid currentColor;outline-offset:2px}
+.feedback-rating-options input:checked:focus-visible+span{outline-color:var(--teal)}
+@media(min-width:1024px){.feedback-rating-options{grid-template-columns:repeat(10,minmax(0,1fr))}}
 .currency-symbol{color:inherit;font-weight:600;line-height:1}
 .page-title>.currency-symbol{color:var(--theme-color-brand-orange)}
 .counter[hidden],.availability-rail:has(> .counter[hidden]),.job-count:has(> .counter[hidden]){display:none}
