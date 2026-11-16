@@ -154,7 +154,7 @@ function header(role,current){
  </a>`:'';
  return `<header class="header ${session?'':'guest-header'}${hasFeedback?' header-with-feedback':''}">
   ${dashboard}
-  <a class="brand" href="#/"><img class="logo" src="./logo.webp" alt="&TALENTS Logo"><span class="app-version">Version 0.15.86</span></a>
+  <a class="brand" href="#/"><img class="logo" src="./logo.webp" alt="&TALENTS Logo"><span class="app-version">Version 0.15.87</span></a>
   ${hasFeedback?`<a class="btn secondary header-feedback" href="#/recruiter/feedback" ${current==='feedback'?'aria-current="page"':''}>${icon('edit')} Feedback geben</a>`:''}
   <div class="header-actions">${profile}</div>
  </header>`;
@@ -770,6 +770,8 @@ function recruiterFeedbackPage(){
  return shell('recruiter','feedback',`<h1 class="page-title">${icon('edit')} Feedback</h1>
   <p class="intro">Wie war Ihr Test mit &amp;TALENTS?</p>
   <form class="box recruiter-feedback" data-form="recruiter-feedback">
+   <label class="field"><span>Name (optional)</span><input name="contact_name" autocomplete="name" maxlength="120"></label>
+   <label class="field"><span id="feedback-email-label">E-Mail-Adresse (optional)</span><input name="contact_email" type="email" autocomplete="email" maxlength="254" aria-labelledby="feedback-email-label"></label>
    ${questions}
    <fieldset class="feedback-rating">
     <legend>Können Sie sich vorstellen, dass Ihnen &amp;TALENTS bei der Gewinnung von passenden Bewerberprofilen helfen kann?</legend>
@@ -1876,7 +1878,8 @@ case 'recruiter-feedback':{
  const rating=Number(f.rating);
  if(!Number.isInteger(rating)||rating<1||rating>10)throw Error('Bitte wählen Sie eine Einschätzung von 1 bis 10.');
  const submission_id=form.dataset.feedbackSubmission??=crypto.randomUUID();
- const payload={submission_id,rating,friction:f.friction.trim(),decision:f.decision.trim(),use_case:f.use_case.trim()};
+ const payload={submission_id,rating,contact_name:f.contact_name.trim(),contact_email:f.contact_email.trim(),
+  friction:f.friction.trim(),decision:f.decision.trim(),use_case:f.use_case.trim()};
  await request('/rest/v1/rpc/app_recruiter_feedback',{body:{p_feedback:payload}});
  if(form.isConnected){
   form.removeAttribute('data-form');
