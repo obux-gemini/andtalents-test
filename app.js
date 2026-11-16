@@ -141,7 +141,6 @@ function header(role,current){
  const session=getSession();
  const navigation=mayShowNavigation(role,state.me,routeKey,!!session);
  const account=state.me?.profile;
- const hasFeedback=routeKey==='/'||routeKey==='/home'||(role==='recruiter'&&account?.role==='recruiter'&&account.user_id===session?.user?.id);
  const name=account?.user_id===session?.user?.id
   ? [account?.first_name,account?.last_name].map(part=>part?.trim()).filter(Boolean).join(' ')
   : '';
@@ -152,10 +151,10 @@ function header(role,current){
    ${name?`<span class="header-profile-name" title="${E(name)}">${E(name)}</span>`:''}
   </span>
  </a>`:'';
- return `<header class="header ${session?'':'guest-header'}${hasFeedback?' header-with-feedback':''}">
+ return `<header class="header ${session?'':'guest-header'}">
   ${dashboard}
-  <a class="brand" href="#/"><img class="logo" src="./logo.webp" alt="&TALENTS Logo"><span class="app-version">Version 0.15.89</span></a>
-  ${hasFeedback?`<a class="btn secondary header-feedback" href="#/recruiter/feedback" ${current==='feedback'?'aria-current="page"':''}>${icon('edit')} Feedback geben</a>`:''}
+  <a class="brand" href="#/"><img class="logo" src="./logo.webp" alt="&TALENTS Logo"><span class="app-version">Version 0.15.90</span></a>
+  <a class="btn secondary header-feedback" href="#/recruiter/feedback" ${current==='feedback'||routeKey==='/recruiter/feedback'?'aria-current="page"':''}>${icon('edit')} Feedback geben</a>
   <div class="header-actions">${profile}</div>
  </header>`;
 }
