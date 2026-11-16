@@ -73,6 +73,17 @@ html{scroll-padding-top:124px}main,dialog{overflow-wrap:anywhere}input,select,te
 .mobile-detail-toggle{margin:8px 0}
 .skill-overlap-notice{display:grid;gap:12px;margin:8px 0 12px}
 .skill-overlap-notice p{margin:0}
+.header .header-feedback{min-height:44px;gap:7px;white-space:nowrap;background:var(--theme-color-surface)}
+.header .header-feedback[aria-current="page"]{background:var(--theme-color-orange-soft);color:var(--theme-color-orange-ink)}
+@media (width < 960px){
+ body:has(.header-with-feedback){--ui-header-height:112px}
+ .header.header-with-feedback{height:var(--ui-header-height);grid-template-rows:60px 44px}
+ .header-feedback{grid-column:2;grid-row:2;justify-self:center}
+ .header-with-feedback .header-actions{grid-column:3;grid-row:1}
+}
+@media (min-width:960px){
+ .header-feedback{position:absolute;inset-inline-start:50%;transform:translateX(-50%)}
+}
 .recruiter-feedback{max-width:720px}
 .feedback-rating{border:0;margin:0 0 18px;padding:0;min-inline-size:0}
 .feedback-rating legend{font-weight:600;padding:0}

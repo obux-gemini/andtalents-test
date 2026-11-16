@@ -141,6 +141,7 @@ function header(role,current){
  const session=getSession();
  const navigation=mayShowNavigation(role,state.me,routeKey,!!session);
  const account=state.me?.profile;
+ const hasFeedback=role==='recruiter'&&account?.role==='recruiter'&&account.user_id===session?.user?.id;
  const name=account?.user_id===session?.user?.id
   ? [account?.first_name,account?.last_name].map(part=>part?.trim()).filter(Boolean).join(' ')
   : '';
@@ -151,9 +152,10 @@ function header(role,current){
    ${name?`<span class="header-profile-name" title="${E(name)}">${E(name)}</span>`:''}
   </span>
  </a>`:'';
- return `<header class="header ${session?'':'guest-header'}">
+ return `<header class="header ${session?'':'guest-header'}${hasFeedback?' header-with-feedback':''}">
   ${dashboard}
-  <a class="brand" href="#/"><img class="logo" src="./logo.webp" alt="&TALENTS Logo"><span class="app-version">Version 0.15.85</span></a>
+  <a class="brand" href="#/"><img class="logo" src="./logo.webp" alt="&TALENTS Logo"><span class="app-version">Version 0.15.86</span></a>
+  ${hasFeedback?`<a class="btn secondary header-feedback" href="#/recruiter/feedback" ${current==='feedback'?'aria-current="page"':''}>${icon('edit')} Feedback geben</a>`:''}
   <div class="header-actions">${profile}</div>
  </header>`;
 }
@@ -164,7 +166,7 @@ function nav(role,current,desktop=false){
   [['jobs','cards','Jobs'],['applications','send','Bewerbungen'],['matches','match','Matches']];
  if(desktop){
   links.unshift(['dashboard','home','Dashboard']);
-  if(role==='recruiter')links.push(['costs','€','Kosten'],['companies','company','Unternehmensprofile'],['feedback','edit','Feedback']);
+  if(role==='recruiter')links.push(['costs','€','Kosten'],['companies','company','Unternehmensprofile']);
   links.push(['profile','user','Mein Profil']);
  }else if(role==='recruiter')links.push(['costs','€','Kosten']);
  return `<nav class="${desktop?`desktop-nav desktop-nav-${role}`:'nav'}" aria-label="Hauptnavigation">${links.map(([path,glyph,title])=>{
@@ -752,7 +754,7 @@ async function dashboard(role){if(role==='talent'&&!state.me.candidate){go('/tal
   <div class="stats" id="dashboard-stats" aria-label="Deine Übersicht">${dashboardStats(role,stats,feed)}</div>${desktopContent}
   <div class="cards dashboard-shortcuts">${nextJob}
    <div class="box"><h2>${role==='talent'?'Dein Job-Filter':'Neue Bewerbungen'}</h2><p class="intro">${role==='talent'?'Passe Deine Skills und Präferenzen an und sieh, wie sich Deine Treffer verändern.':'Prüfe die fachliche Passung und entscheide, mit wem Du in Kontakt treten möchtest.'}</p><a class="btn secondary" href="#/${role}/${role==='talent'?'filter':'applications'}">${role==='talent'?'Filter bearbeiten':'Bewerbungen prüfen'} →</a></div>
-  </div>${role==='recruiter'?'<p class="settings-note">In der Testumgebung simulieren wir 15 € je Match.</p><a class="btn secondary" href="#/recruiter/feedback">Feedback geben</a>':''}`);
+  </div>${role==='recruiter'?'<p class="settings-note">In der Testumgebung simulieren wir 15 € je Match.</p>':''}`);
 }
 const feedbackQuestions=[
  ['friction','Wo sind Sie beim Testen hängen geblieben?'],
@@ -1719,7 +1721,7 @@ async function render(){const version=++pageVersion;clearTimeout(countTimer);con
    return;
   }
  }
- if(!getSession()){state.me=null;if(route==='/'||route==='/home')app.innerHTML=home();else{const [,role,page]=route.split('/');if(!['talent','recruiter'].includes(role)){go('/');return;}app.innerHTML=page==='login'?loginPage(role):role==='recruiter'&&page==='feedback'?narrow('<h1>Feedback</h1><p class="intro">Melden Sie sich als Recruiter an. Den Feedbackbogen finden Sie anschließend im Dashboard.</p><a class="btn orange" href="#/recruiter/login">Anmelden</a>'):guestPage(role,page);}return;}
+ if(!getSession()){state.me=null;if(route==='/'||route==='/home')app.innerHTML=home();else{const [,role,page]=route.split('/');if(!['talent','recruiter'].includes(role)){go('/');return;}app.innerHTML=page==='login'?loginPage(role):role==='recruiter'&&page==='feedback'?narrow('<h1>Feedback</h1><p class="intro">Melden Sie sich als Recruiter an. Den Feedbackbogen finden Sie anschließend oben in der App.</p><a class="btn orange" href="#/recruiter/login">Anmelden</a>'):guestPage(role,page);}return;}
  const me=await readMe();if(version!==pageVersion||!me)return;state.me=me;restoreDraft();
  if(!state.me.profile){const role=sessionStorage.getItem('onboarding-role')||'talent';app.innerHTML=accountPage(role);return;}
  const role=state.me.profile.role;
