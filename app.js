@@ -153,7 +153,7 @@ function header(role,current){
  </a>`:'';
  return `<header class="header ${session?'':'guest-header'}">
   ${dashboard}
-  <a class="brand" href="#/"><img class="logo" src="./logo.webp" alt="&TALENTS Logo"><span class="app-version">Version 0.15.91</span></a>
+  <a class="brand" href="#/"><img class="logo" src="./logo.webp" alt="&TALENTS Logo"><span class="app-version">Version 0.15.92</span></a>
   <a class="btn secondary header-feedback" href="#/recruiter/feedback" ${current==='feedback'||routeKey==='/recruiter/feedback'?'aria-current="page"':''}>${icon('edit')} Feedback geben</a>
   <div class="header-actions">${profile}</div>
  </header>`;
@@ -757,7 +757,7 @@ async function dashboard(role){if(role==='talent'&&!state.me.candidate){go('/tal
 }
 const feedbackQuestions=[
  ['test_problems','test_problems_details','Hatten Sie Probleme beim Testen?'],
- ['missing_criteria','missing_criteria_details','Fehlt Ihnen ein Filterkriterium oder eine Bewertung, die Ihnen helfen würde, Bewerbungen zu beurteilen?'],
+ ['missing_criteria','missing_criteria_details','Haben Sie ein Filterkriterium oder eine Bewertung vermisst, die Ihnen bei der Auswahl der Bewerbungen helfen würde?'],
  ['skills_search_convincing','skills_search_details','Überzeugt Sie die Suche nach Kandidaten anhand ihrer tatsächlichen Skills?']
 ];
 const feedbackChoice=(name,value,label)=>`<label><input type="radio" name="${name}" value="${value}" aria-label="${label}" required><span aria-hidden="true">${label}</span></label>`;
