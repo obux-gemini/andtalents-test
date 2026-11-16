@@ -141,7 +141,7 @@ function header(role,current){
  const session=getSession();
  const navigation=mayShowNavigation(role,state.me,routeKey,!!session);
  const account=state.me?.profile;
- const hasFeedback=role==='recruiter'&&account?.role==='recruiter'&&account.user_id===session?.user?.id;
+ const hasFeedback=routeKey==='/'||routeKey==='/home'||(role==='recruiter'&&account?.role==='recruiter'&&account.user_id===session?.user?.id);
  const name=account?.user_id===session?.user?.id
   ? [account?.first_name,account?.last_name].map(part=>part?.trim()).filter(Boolean).join(' ')
   : '';
@@ -154,7 +154,7 @@ function header(role,current){
  </a>`:'';
  return `<header class="header ${session?'':'guest-header'}${hasFeedback?' header-with-feedback':''}">
   ${dashboard}
-  <a class="brand" href="#/"><img class="logo" src="./logo.webp" alt="&TALENTS Logo"><span class="app-version">Version 0.15.88</span></a>
+  <a class="brand" href="#/"><img class="logo" src="./logo.webp" alt="&TALENTS Logo"><span class="app-version">Version 0.15.89</span></a>
   ${hasFeedback?`<a class="btn secondary header-feedback" href="#/recruiter/feedback" ${current==='feedback'?'aria-current="page"':''}>${icon('edit')} Feedback geben</a>`:''}
   <div class="header-actions">${profile}</div>
  </header>`;
@@ -782,6 +782,11 @@ function recruiterFeedbackPage(){
    <div class="form-error" role="alert"></div>
    <div class="form-actions"><button type="submit" class="btn orange">Feedback senden</button></div>
   </form>`);
+}
+function recruiterFeedbackEntry(signedInAsTalent=false){
+ const intro=signedInAsTalent?'Melden Sie sich zuerst vom Kandidatenkonto ab. Anschließend können Sie sich als Recruiter anmelden.':'Melden Sie sich als Recruiter an. Den Feedbackbogen finden Sie anschließend oben in der App.';
+ const action=signedInAsTalent?actionButton('logout','Abmelden','secondary'):'<a class="btn orange" href="#/recruiter/login">Als Recruiter anmelden</a>';
+ return narrow(`<h1>Feedback</h1><p class="intro">${intro}</p>${action}`,signedInAsTalent?'talent':'recruiter');
 }
 function costJobs(costs,profile){
  return costs.jobs.filter(job=>!profile||job.company_profile_id===profile);
@@ -1737,11 +1742,12 @@ async function render(){const version=++pageVersion;clearTimeout(countTimer);con
    return;
   }
  }
- if(!getSession()){state.me=null;if(route==='/'||route==='/home')app.innerHTML=home();else{const [,role,page]=route.split('/');if(!['talent','recruiter'].includes(role)){go('/');return;}app.innerHTML=page==='login'?loginPage(role):role==='recruiter'&&page==='feedback'?narrow('<h1>Feedback</h1><p class="intro">Melden Sie sich als Recruiter an. Den Feedbackbogen finden Sie anschließend oben in der App.</p><a class="btn orange" href="#/recruiter/login">Anmelden</a>'):guestPage(role,page);}return;}
+ if(!getSession()){state.me=null;if(route==='/'||route==='/home')app.innerHTML=home();else{const [,role,page]=route.split('/');if(!['talent','recruiter'].includes(role)){go('/');return;}app.innerHTML=page==='login'?loginPage(role):role==='recruiter'&&page==='feedback'?recruiterFeedbackEntry():guestPage(role,page);}return;}
  const me=await readMe();if(version!==pageVersion||!me)return;state.me=me;restoreDraft();
  if(!state.me.profile){const role=sessionStorage.getItem('onboarding-role')||'talent';app.innerHTML=accountPage(role);return;}
  const role=state.me.profile.role;
- if(route==='/'){app.innerHTML=home();return;}
+ if(route==='/'||route==='/home'){app.innerHTML=home();return;}
+ if(route==='/recruiter/feedback'&&role==='talent'){app.innerHTML=recruiterFeedbackEntry(true);return;}
  const [,requested,page,id]=route.split('/');if(requested!==role){app.innerHTML=narrow(errorBlock('Bitte melde Dich ab, um die andere Rolle zu verwenden.')+actionButton('logout','Abmelden','secondary'));return;}
  let content;
  if(page==='onboarding'){

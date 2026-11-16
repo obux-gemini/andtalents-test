@@ -106,8 +106,6 @@
     padding: 16px 11px;
     background: var(--theme-color-surface);
     border-inline-end: 1px solid var(--theme-color-border);
-  }
-  .desktop-shell > .desktop-nav-recruiter {
     position: sticky;
     top: var(--ui-header-height);
     align-self: start;
